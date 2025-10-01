@@ -1,0 +1,138 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:CircularMidiGenerator.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
+        x:Class="CircularMidiGenerator.Views.MainWindow"
+        x:DataType="vm:MainViewModel"
+        Icon="/Assets/avalonia-logo.ico"
+        Title="Circular MIDI Generator"
+        Width="800" Height="600">
+
+    <Design.DataContext>
+        <!-- This only sets the DataContext for the previewer in an IDE,
+             to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
+        <vm:MainViewModel />
+    </Design.DataContext>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Top Control Panel -->
+        <Border Grid.Row="0" Background="#2D2D30" Padding="10">
+            <StackPanel Orientation="Horizontal" Spacing="15">
+                <!-- Playback Controls -->
+                <Button Content="Play" 
+                        Command="{Binding PlayCommand}"
+                        IsEnabled="{Binding !IsPlaying}"
+                        Background="#4CAF50"
+                        Foreground="White"
+                        Padding="15,5"/>
+                
+                <Button Content="Stop" 
+                        Command="{Binding StopCommand}"
+                        IsEnabled="{Binding IsPlaying}"
+                        Background="#F44336"
+                        Foreground="White"
+                        Padding="15,5"/>
+
+                <!-- BPM Control -->
+                <StackPanel Orientation="Horizontal" Spacing="5">
+                    <TextBlock Text="BPM:" VerticalAlignment="Center" Foreground="White"/>
+                    <NumericUpDown Value="{Binding BPM}" 
+                                   Minimum="60" 
+                                   Maximum="200" 
+                                   Increment="1"
+                                   Width="80"/>
+                </StackPanel>
+
+                <!-- Ableton Sync -->
+                <CheckBox Content="Ableton Sync" 
+                          IsChecked="{Binding IsAbletonSyncEnabled}"
+                          Foreground="White"/>
+
+                <!-- File Operations -->
+                <Button Content="Save" 
+                        Command="{Binding SaveConfigurationCommand}"
+                        Background="#2196F3"
+                        Foreground="White"
+                        Padding="10,5"/>
+                
+                <Button Content="Load" 
+                        Command="{Binding LoadConfigurationCommand}"
+                        Background="#FF9800"
+                        Foreground="White"
+                        Padding="10,5"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Main Canvas Area (Placeholder for CircularCanvas) -->
+        <Border Grid.Row="1" Background="#1E1E1E" Margin="10">
+            <Grid>
+                <!-- Placeholder for circular canvas - will be implemented in later tasks -->
+                <Ellipse Fill="#333333" 
+                         Stroke="#555555" 
+                         StrokeThickness="2"
+                         Width="400" 
+                         Height="400"
+                         HorizontalAlignment="Center"
+                         VerticalAlignment="Center"/>
+                
+                <TextBlock Text="Circular Canvas Placeholder" 
+                           HorizontalAlignment="Center" 
+                           VerticalAlignment="Center"
+                           Foreground="White"
+                           FontSize="16"/>
+            </Grid>
+        </Border>
+
+        <!-- Bottom Lane Panel -->
+        <Border Grid.Row="2" Background="#2D2D30" Padding="10">
+            <StackPanel>
+                <TextBlock Text="Lanes" Foreground="White" FontWeight="Bold" Margin="0,0,0,5"/>
+                <ItemsControl ItemsSource="{Binding Lanes}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal" Spacing="10"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Background="#404040" 
+                                    CornerRadius="5" 
+                                    Padding="10,5"
+                                    MinWidth="100">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Name}" 
+                                               Foreground="White" 
+                                               FontWeight="Bold"
+                                               HorizontalAlignment="Center"/>
+                                    <TextBlock Text="{Binding MidiChannel, StringFormat='Ch {0}'}" 
+                                               Foreground="#CCCCCC" 
+                                               FontSize="10"
+                                               HorizontalAlignment="Center"/>
+                                    <StackPanel Orientation="Horizontal" 
+                                                HorizontalAlignment="Center" 
+                                                Spacing="5" 
+                                                Margin="0,5,0,0">
+                                        <CheckBox Content="M" 
+                                                  IsChecked="{Binding IsMuted}"
+                                                  ToolTip.Tip="Mute"/>
+                                        <CheckBox Content="S" 
+                                                  IsChecked="{Binding IsSoloed}"
+                                                  ToolTip.Tip="Solo"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>
