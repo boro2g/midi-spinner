@@ -61,6 +61,21 @@ public class Marker
     /// </summary>
     public DateTime LastTriggered { get; set; }
 
+    /// <summary>
+    /// Indicates if this marker is locked to a quantization grid line
+    /// </summary>
+    public bool IsLockedToGrid { get; set; }
+
+    /// <summary>
+    /// The grid line angle this marker is locked to (when IsLockedToGrid is true)
+    /// </summary>
+    public double? LockedGridAngle { get; set; }
+
+    /// <summary>
+    /// Indicates if this marker should maintain grid alignment during rotation
+    /// </summary>
+    public bool MaintainGridAlignment { get; set; } = true;
+
     public Marker()
     {
         Velocity = 100; // Default velocity

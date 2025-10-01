@@ -57,20 +57,20 @@
     - Test error handling and recovery mechanisms
     - _Requirements: 11.2, 2.1_
 
-- [ ] 4. Implement timing and synchronization engine
-  - [ ] 4.1 Create TimingService for disk rotation and playhead management
+- [x] 4. Implement timing and synchronization engine
+  - [x] 4.1 Create TimingService for disk rotation and playhead management
     - Implement high-precision timer for smooth disk rotation
     - Calculate playhead position based on BPM and elapsed time
     - Add start/stop controls and timing state management
     - _Requirements: 2.3, 4.1_
 
-  - [ ] 4.2 Add marker triggering detection and events
+  - [x] 4.2 Add marker triggering detection and events
     - Implement collision detection when markers pass 12 o'clock position
     - Add event system for marker triggering notifications
     - Prevent double-triggering with timing thresholds
     - _Requirements: 1.3, 4.2, 4.3_
 
-  - [ ] 4.3 Integrate BPM control and tempo synchronization
+  - [x] 4.3 Integrate BPM control and tempo synchronization
     - Connect manual BPM input to disk rotation speed
     - Implement smooth tempo transitions to prevent audio glitches
     - Add real-time tempo adjustment capabilities
@@ -82,20 +82,20 @@
     - Test smooth tempo transitions and sync stability
     - _Requirements: 2.3, 11.2_
 
-- [ ] 5. Create quantization system
-  - [ ] 5.1 Implement QuantizationService for grid snapping
+- [x] 5. Create quantization system
+  - [x] 5.1 Implement QuantizationService for grid snapping
     - Calculate grid line positions for different note divisions (1/4, 1/8, 1/16, 1/32)
     - Implement angle snapping logic for marker placement
     - Add per-lane quantization settings management
     - _Requirements: 3.1, 3.4, 6.4_
 
-  - [ ] 5.2 Add visual grid overlay rendering
+  - [x] 5.2 Add visual grid overlay rendering
     - Create grid line visualization that rotates with the disk
     - Implement grid visibility toggle based on quantization mode
     - Add visual feedback for grid snapping during marker placement
     - _Requirements: 3.2, 3.3_
 
-  - [ ] 5.3 Implement marker locking to grid lines
+  - [x] 5.3 Implement marker locking to grid lines
     - Add visual marker attachment to spinning grid divisions
     - Ensure markers maintain grid alignment during rotation
     - Handle transitions between quantized and free placement modes
@@ -107,26 +107,26 @@
     - Test per-lane quantization independence
     - _Requirements: 3.1, 6.4_
 
-- [ ] 6. Build custom CircularCanvas UI control
-  - [ ] 6.1 Create base CircularCanvas control inheriting from Avalonia Canvas
+- [x] 6. Build custom CircularCanvas UI control
+  - [x] 6.1 Create base CircularCanvas control inheriting from Avalonia Canvas
     - Implement circular coordinate system and angle calculations
     - Add mouse/touch input handling for marker placement
     - Create rendering pipeline for disk background and visual elements
     - _Requirements: 1.1, 9.1_
 
-  - [ ] 6.2 Add marker rendering and visual feedback
+  - [x] 6.2 Add marker rendering and visual feedback
     - Implement marker drawing with color-coded visualization
     - Add marker highlighting for active/triggered states
     - Create smooth animations for marker state changes
     - _Requirements: 1.2, 4.3, 10.1, 10.4_
 
-  - [ ] 6.3 Implement playhead visualization
+  - [x] 6.3 Implement playhead visualization
     - Add clear playhead line at 12 o'clock position
     - Ensure playhead remains stationary while disk rotates
     - Add visual emphasis to make playhead clearly visible
     - _Requirements: 4.1_
 
-  - [ ] 6.4 Add drag-and-drop marker manipulation
+  - [x] 6.4 Add drag-and-drop marker manipulation
     - Implement marker selection and dragging functionality
     - Add velocity adjustment through vertical drag gestures
     - Create visual feedback for velocity changes during dragging
