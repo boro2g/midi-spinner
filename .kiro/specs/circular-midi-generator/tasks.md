@@ -7,20 +7,20 @@
   - Set up dependency injection container and MVVM infrastructure
   - _Requirements: 1.1, 11.1_
 
-- [ ] 2. Implement domain models and validation
-  - [ ] 2.1 Create Marker model with angle, color, velocity, and lane properties
+- [x] 2. Implement domain models and validation
+  - [x] 2.1 Create Marker model with angle, color, velocity, and lane properties
     - Implement Marker class with proper validation for angle (0-360°) and velocity (1-127)
     - Add color-to-pitch mapping logic for chromatic scale
     - Include marker state management (IsActive, LastTriggered)
     - _Requirements: 1.2, 5.3, 10.5_
 
-  - [ ] 2.2 Implement Lane model with independent settings
+  - [x] 2.2 Implement Lane model with independent settings
     - Create Lane class with MIDI channel, mute/solo state, and quantization settings
     - Add marker collection management per lane
     - Implement lane color theming for visual grouping
     - _Requirements: 6.2, 6.5, 7.1, 7.2_
 
-  - [ ] 2.3 Create ProjectConfiguration model for persistence
+  - [x] 2.3 Create ProjectConfiguration model for persistence
     - Implement configuration class with BPM, sync settings, and lane data
     - Add JSON serialization attributes and validation
     - Include version tracking for configuration compatibility
@@ -32,20 +32,20 @@
     - Test lane state management and marker collections
     - _Requirements: 1.2, 5.3, 6.2_
 
-- [ ] 3. Create MIDI service implementation
-  - [ ] 3.1 Implement MidiService using DryWetMIDI library
+- [x] 3. Create MIDI service implementation
+  - [x] 3.1 Implement MidiService using DryWetMIDI library
     - Initialize MIDI output devices and handle device enumeration
     - Implement note on/off message sending with proper timing
     - Add MIDI device selection and connection management
     - _Requirements: 11.1, 11.2, 11.4_
 
-  - [ ] 3.2 Add Ableton Live synchronization support
+  - [x] 3.2 Add Ableton Live synchronization support
     - Implement tempo sync communication with Ableton Live
     - Handle tempo change events and maintain synchronization
     - Add fallback to manual BPM when sync is unavailable
     - _Requirements: 2.1, 2.4_
 
-  - [ ] 3.3 Implement error handling and device management
+  - [x] 3.3 Implement error handling and device management
     - Add graceful handling of MIDI device disconnections
     - Implement automatic reconnection attempts
     - Create user notifications for MIDI-related issues

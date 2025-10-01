@@ -74,4 +74,117 @@ public class Marker
         Velocity = velocity;
         Lane = lane;
     }
+
+    /// <summary>
+    /// Converts the marker's color to a MIDI note number using chromatic scale mapping
+    /// Red (0°) = C (60), progressing through chromatic scale
+    /// </summary>
+    /// <param name="baseOctave">Base octave for the chromatic scale (default C4 = 60)</param>
+    /// <returns>MIDI note number (0-127)</returns>
+    public int GetMidiNote(int baseOctave = 60)
+    {
+        // Convert RGB color to HSV to get hue angle
+        var hue = GetHueFromColor(Color);
+        
+        // Map hue (0-360°) to chromatic scale (12 semitones)
+        var semitone = (int)Math.Round(hue / 30.0) % 12; // 360° / 12 semitones = 30° per semitone
+        
+        // Calculate MIDI note number
+        var midiNote = baseOctave + semitone;
+        
+        // Ensure note is within valid MIDI range (0-127)
+        return Math.Max(0, Math.Min(127, midiNote));
+    }
+
+    /// <summary>
+    /// Creates a color from a MIDI note number using chromatic scale mapping
+    /// </summary>
+    /// <param name="midiNote">MIDI note number (0-127)</param>
+    /// <param name="saturation">Color saturation (0.0-1.0)</param>
+    /// <param name="brightness">Color brightness (0.0-1.0)</param>
+    /// <returns>Color representing the MIDI note</returns>
+    public static Color GetColorFromMidiNote(int midiNote, float saturation = 0.8f, float brightness = 0.9f)
+    {
+        if (midiNote < 0 || midiNote > 127)
+            throw new ArgumentOutOfRangeException(nameof(midiNote), "MIDI note must be between 0 and 127");
+
+        // Get semitone within octave (0-11)
+        var semitone = midiNote % 12;
+        
+        // Map semitone to hue (0-360°)
+        var hue = semitone * 30.0f; // 12 semitones * 30° = 360°
+        
+        return ColorFromHSV(hue, saturation, brightness);
+    }
+
+    /// <summary>
+    /// Extracts hue value from RGB color
+    /// </summary>
+    private static float GetHueFromColor(Color color)
+    {
+        var r = color.R / 255.0f;
+        var g = color.G / 255.0f;
+        var b = color.B / 255.0f;
+
+        var max = Math.Max(r, Math.Max(g, b));
+        var min = Math.Min(r, Math.Min(g, b));
+        var delta = max - min;
+
+        if (delta == 0) return 0; // Grayscale
+
+        float hue;
+        if (max == r)
+            hue = ((g - b) / delta) % 6;
+        else if (max == g)
+            hue = (b - r) / delta + 2;
+        else
+            hue = (r - g) / delta + 4;
+
+        hue *= 60;
+        if (hue < 0) hue += 360;
+
+        return hue;
+    }
+
+    /// <summary>
+    /// Creates RGB color from HSV values
+    /// </summary>
+    private static Color ColorFromHSV(float hue, float saturation, float brightness)
+    {
+        var c = brightness * saturation;
+        var x = c * (1 - Math.Abs((hue / 60) % 2 - 1));
+        var m = brightness - c;
+
+        float r, g, b;
+        if (hue < 60)
+        {
+            r = c; g = x; b = 0;
+        }
+        else if (hue < 120)
+        {
+            r = x; g = c; b = 0;
+        }
+        else if (hue < 180)
+        {
+            r = 0; g = c; b = x;
+        }
+        else if (hue < 240)
+        {
+            r = 0; g = x; b = c;
+        }
+        else if (hue < 300)
+        {
+            r = x; g = 0; b = c;
+        }
+        else
+        {
+            r = c; g = 0; b = x;
+        }
+
+        return Color.FromArgb(
+            (int)Math.Round((r + m) * 255),
+            (int)Math.Round((g + m) * 255),
+            (int)Math.Round((b + m) * 255)
+        );
+    }
 }
