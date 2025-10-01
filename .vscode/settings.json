@@ -1,0 +1,4 @@
+{
+    "dotnet.defaultSolution": "MidiSpinner.sln",
+    "kiroAgent.configureMCP": "Disabled"
+}
