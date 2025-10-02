@@ -830,25 +830,58 @@ public class CircularCanvas : Control
     }
 
     /// <summary>
+    /// Transforms a click position to account for disk rotation
+    /// This converts unrotated click coordinates to rotated coordinate space for marker comparison
+    /// </summary>
+    private Point TransformClickPositionForRotation(Point clickPosition)
+    {
+        // Apply inverse rotation to convert click coordinates back to unrotated space
+        var rotationRadians = -DiskRotation * Math.PI / 180.0; // Negative for inverse
+        
+        // Translate to origin
+        var translatedX = clickPosition.X - _center.X;
+        var translatedY = clickPosition.Y - _center.Y;
+        
+        // Apply inverse rotation
+        var cos = Math.Cos(rotationRadians);
+        var sin = Math.Sin(rotationRadians);
+        var rotatedX = translatedX * cos - translatedY * sin;
+        var rotatedY = translatedX * sin + translatedY * cos;
+        
+        // Translate back
+        return new Point(rotatedX + _center.X, rotatedY + _center.Y);
+    }
+
+    /// <summary>
     /// Finds the marker at a given position (within tolerance)
+    /// Accounts for disk rotation when comparing positions
     /// </summary>
     private Marker? FindMarkerAtPosition(Point position, double tolerance = 15.0)
     {
         if (Markers == null) return null;
 
+        // Transform the click position to account for disk rotation
+        var transformedPosition = TransformClickPositionForRotation(position);
+
+        Marker? closestMarker = null;
+        double closestDistance = double.MaxValue;
+
         foreach (var marker in Markers)
         {
             var markerPosition = CalculateMarkerPosition(marker);
             var distance = Math.Sqrt(
-                Math.Pow(position.X - markerPosition.X, 2) + 
-                Math.Pow(position.Y - markerPosition.Y, 2)
+                Math.Pow(transformedPosition.X - markerPosition.X, 2) + 
+                Math.Pow(transformedPosition.Y - markerPosition.Y, 2)
             );
             
-            if (distance <= tolerance)
-                return marker;
+            if (distance <= tolerance && distance < closestDistance)
+            {
+                closestMarker = marker;
+                closestDistance = distance;
+            }
         }
         
-        return null;
+        return closestMarker;
     }
 
     /// <summary>
@@ -1778,6 +1811,9 @@ public class CircularCanvas : Control
         {
             DrawMultiSelectionIndicators(context);
         }
+        
+        // Draw velocity and note length indicators (outside rotation transform so text doesn't rotate)
+        DrawVelocityAndNoteLengthIndicators(context);
     }
 
     private void DrawDisk(DrawingContext context)
@@ -2082,11 +2118,7 @@ public class CircularCanvas : Control
         var markerPen = new Pen(borderBrush, borderThickness);
         context.DrawEllipse(markerBrush, markerPen, position, finalRadius, finalRadius);
         
-        // Velocity and note length visualization for selected markers
-        if (marker == SelectedMarker)
-        {
-            DrawVelocityAndNoteLengthIndicator(context, position, marker, finalRadius);
-        }
+        // Note: Velocity and note length indicators are now drawn outside the rotation transform
         
         // Lane indicator (small colored dot)
         if (marker.Lane > 0)
@@ -2101,6 +2133,35 @@ public class CircularCanvas : Control
         }
     }
     
+    /// <summary>
+    /// Draws velocity and note length indicators for all selected markers (outside rotation transform)
+    /// </summary>
+    private void DrawVelocityAndNoteLengthIndicators(DrawingContext context)
+    {
+        if (SelectedMarker != null)
+        {
+            // Calculate the marker's position in unrotated space
+            var laneRadius = GetLaneRadius(SelectedMarker.Lane);
+            var unrotatedPosition = CalculatePosition(SelectedMarker.Angle, laneRadius);
+            
+            // Apply the same transform that's used in rendering to get the visual position
+            var rotationRadians = DiskRotation * Math.PI / 180.0;
+            var translatedX = unrotatedPosition.X - _center.X;
+            var translatedY = unrotatedPosition.Y - _center.Y;
+            var cos = Math.Cos(rotationRadians);
+            var sin = Math.Sin(rotationRadians);
+            var rotatedX = translatedX * cos - translatedY * sin;
+            var rotatedY = translatedX * sin + translatedY * cos;
+            var visualPosition = new Point(rotatedX + _center.X, rotatedY + _center.Y);
+            
+            var baseRadius = 8 * ZoomLevel;
+            var noteLengthMultiplier = Math.Max(0.5, Math.Min(2.0, SelectedMarker.NoteLength * 4));
+            var markerRadius = baseRadius * noteLengthMultiplier;
+            
+            DrawVelocityAndNoteLengthIndicator(context, visualPosition, SelectedMarker, markerRadius);
+        }
+    }
+
     private void DrawVelocityAndNoteLengthIndicator(DrawingContext context, Point markerPosition, Marker marker, double markerRadius)
     {
         var velocity = marker.Velocity;

@@ -35,8 +35,7 @@
                 <MenuItem Header="_Clear All Markers" Command="{Binding ClearAllMarkersCommand}"/>
             </MenuItem>
             <MenuItem Header="_Playback">
-                <MenuItem Header="_Play" Command="{Binding PlayCommand}"/>
-                <MenuItem Header="_Stop" Command="{Binding StopCommand}"/>
+                <MenuItem Header="{Binding PlayButtonText}" Command="{Binding PlayToggleCommand}"/>
             </MenuItem>
             <MenuItem Header="_View">
                 <MenuItem Header="Show _Grid" Command="{Binding ToggleQuantizationCommand}"/>
@@ -61,18 +60,9 @@
                 <Border Grid.Row="0" Background="#2A1B3D" CornerRadius="15" BorderBrush="#FF6B9D" BorderThickness="2" Padding="15" Margin="10">
                     <StackPanel Orientation="Horizontal" Spacing="20" HorizontalAlignment="Center">
                         <!-- Playback Controls -->
-                        <Button Content="🎵 Play" 
-                                Command="{Binding PlayCommand}"
-                                IsEnabled="{Binding !IsPlaying}"
-                                Background="#06FFA5"
-                                Foreground="White"
-                                Padding="20,10"
-                                CornerRadius="25"/>
-                        
-                        <Button Content="⏹ Stop" 
-                                Command="{Binding StopCommand}"
-                                IsEnabled="{Binding IsPlaying}"
-                                Background="#FF6B9D"
+                        <Button Content="{Binding PlayButtonText}"
+                                Command="{Binding PlayToggleCommand}"
+                                Background="{Binding PlayButtonColor}"
                                 Foreground="White"
                                 Padding="20,10"
                                 CornerRadius="25"/>

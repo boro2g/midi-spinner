@@ -19,3 +19,9 @@ ability to configure which root note each lane pushes out
 - ✅ **Right-click functionality**: RESTORED - Right-click drag on markers to adjust velocity (vertical) and note length (horizontal)
 
 - ✅ **Double-click to remove**: ADDED - Double-click any marker to remove it (500ms threshold)
+
+- ✅ **Right-click text rotation**: FIXED - Velocity and note length text indicators no longer rotate with the disk. Moved drawing outside the rotation transform so text stays upright. Confirmed working!
+
+- 🔧 **Remove "12" text**: INVESTIGATING - The "12" text at the top is not found in any XAML or C# code. May be from system overlay, debugging tools, or external library. Need to test in release build or check if it's interactive.
+
+- ✅ **Play/Stop button consolidation**: IMPROVED - Replaced separate Play and Stop buttons with a single toggle button that shows "🎵 Play" (green) when stopped and "⏹ Stop" (red) when playing. Also updated the menu to use the same toggle command.

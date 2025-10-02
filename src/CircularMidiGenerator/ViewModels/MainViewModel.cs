@@ -56,8 +56,7 @@ public class MainViewModel : ReactiveObject, IDisposable
         _laneController.InitializeDefaultLanes();
         
         // Initialize commands
-        PlayCommand = ReactiveCommand.Create(ExecutePlay);
-        StopCommand = ReactiveCommand.Create(ExecuteStop);
+        PlayToggleCommand = ReactiveCommand.Create(ExecutePlayToggle);
         SaveConfigurationCommand = ReactiveCommand.CreateFromTask(ExecuteSaveConfiguration);
         LoadConfigurationCommand = ReactiveCommand.CreateFromTask(ExecuteLoadConfiguration);
         
@@ -119,7 +118,15 @@ public class MainViewModel : ReactiveObject, IDisposable
     public bool IsPlaying
     {
         get => _isPlaying;
-        set => this.RaiseAndSetIfChanged(ref _isPlaying, value);
+        set
+        {
+            if (this.RaiseAndSetIfChanged(ref _isPlaying, value))
+            {
+                // Notify dependent properties
+                this.RaisePropertyChanged(nameof(PlayButtonText));
+                this.RaisePropertyChanged(nameof(PlayButtonColor));
+            }
+        }
     }
 
     /// <summary>
@@ -219,19 +226,24 @@ public class MainViewModel : ReactiveObject, IDisposable
         set => this.RaiseAndSetIfChanged(ref _selectedMidiDevice, value);
     }
 
+    /// <summary>
+    /// Text for the play/stop toggle button
+    /// </summary>
+    public string PlayButtonText => IsPlaying ? "⏹ Stop" : "🎵 Play";
+
+    /// <summary>
+    /// Background color for the play/stop toggle button
+    /// </summary>
+    public string PlayButtonColor => IsPlaying ? "#FF6B9D" : "#06FFA5";
+
     #endregion
 
     #region Commands
 
     /// <summary>
-    /// Command to start playback
+    /// Command to toggle playback (play/stop)
     /// </summary>
-    public ReactiveCommand<Unit, Unit> PlayCommand { get; }
-
-    /// <summary>
-    /// Command to stop playback
-    /// </summary>
-    public ReactiveCommand<Unit, Unit> StopCommand { get; }
+    public ReactiveCommand<Unit, Unit> PlayToggleCommand { get; }
 
     /// <summary>
     /// Command to save configuration
@@ -306,6 +318,18 @@ public class MainViewModel : ReactiveObject, IDisposable
     #endregion
 
     #region Command Implementations
+
+    private void ExecutePlayToggle()
+    {
+        if (IsPlaying)
+        {
+            ExecuteStop();
+        }
+        else
+        {
+            ExecutePlay();
+        }
+    }
 
     private void ExecutePlay()
     {
