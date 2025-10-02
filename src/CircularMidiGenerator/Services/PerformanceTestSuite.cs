@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using CircularMidiGenerator.Core.Services;
@@ -396,7 +397,7 @@ public class PerformanceTestSuite
                     Angle = i * 0.36,
                     Velocity = 100,
                     Lane = i % 4,
-                    Color = Avalonia.Media.Colors.Red
+                    Color = System.Drawing.Color.Red
                 });
             }
 
@@ -455,7 +456,7 @@ public class PerformanceTestSuite
                         Angle = i * 3.6,
                         Velocity = 100,
                         Lane = 0,
-                        Color = Avalonia.Media.Colors.Blue
+                        Color = System.Drawing.Color.Blue
                     });
                 }
                 
@@ -573,7 +574,7 @@ public class PerformanceTestSuite
                         Angle = (count + i) * 360.0 / maxMarkers,
                         Velocity = 100,
                         Lane = (count + i) % 4,
-                        Color = Avalonia.Media.Colors.Green
+                        Color = System.Drawing.Color.Green
                     });
                 }
 

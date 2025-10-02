@@ -42,7 +42,7 @@ public class OptimizedCircularRenderer : ICustomDrawOperation
     {
         var renderStart = Environment.TickCount64;
 
-        if (context.TryGetFeature<ISkiaSharpApiLeaseFeature>() is { } leaseFeature)
+        if (context.TryGetFeature(typeof(ISkiaSharpApiLeaseFeature)) is ISkiaSharpApiLeaseFeature leaseFeature)
         {
             using var lease = leaseFeature.Lease();
             var canvas = lease.SkCanvas;

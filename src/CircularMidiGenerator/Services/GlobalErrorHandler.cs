@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia;
-using MessageBox.Avalonia;
+using MsBox.Avalonia;
 
 namespace CircularMidiGenerator.Services;
 

@@ -1,6 +1,8 @@
 using System.Linq;
 using System.Threading.Tasks;
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Platform.Storage;
 
 namespace CircularMidiGenerator.Services;
@@ -10,17 +12,22 @@ namespace CircularMidiGenerator.Services;
 /// </summary>
 public class FileDialogService : IFileDialogService
 {
-    private readonly Window _parentWindow;
-
-    public FileDialogService(Window parentWindow)
+    private Window? GetParentWindow()
     {
-        _parentWindow = parentWindow ?? throw new System.ArgumentNullException(nameof(parentWindow));
+        if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+        {
+            return desktop.MainWindow;
+        }
+        return null;
     }
 
     /// <inheritdoc />
     public async Task<string?> ShowSaveFileDialogAsync(string title, string? defaultFileName = null, string? filter = null)
     {
-        var storageProvider = _parentWindow.StorageProvider;
+        var parentWindow = GetParentWindow();
+        if (parentWindow == null) return null;
+        
+        var storageProvider = parentWindow.StorageProvider;
         
         var options = new FilePickerSaveOptions
         {
@@ -40,7 +47,10 @@ public class FileDialogService : IFileDialogService
     /// <inheritdoc />
     public async Task<string?> ShowOpenFileDialogAsync(string title, string? filter = null)
     {
-        var storageProvider = _parentWindow.StorageProvider;
+        var parentWindow = GetParentWindow();
+        if (parentWindow == null) return null;
+        
+        var storageProvider = parentWindow.StorageProvider;
         
         var options = new FilePickerOpenOptions
         {
@@ -60,7 +70,10 @@ public class FileDialogService : IFileDialogService
     /// <inheritdoc />
     public async Task<string?> ShowFolderBrowserDialogAsync(string title)
     {
-        var storageProvider = _parentWindow.StorageProvider;
+        var parentWindow = GetParentWindow();
+        if (parentWindow == null) return null;
+        
+        var storageProvider = parentWindow.StorageProvider;
         
         var options = new FolderPickerOpenOptions
         {

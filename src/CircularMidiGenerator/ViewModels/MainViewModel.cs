@@ -1,5 +1,6 @@
 using System;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Reactive;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
@@ -551,7 +552,7 @@ public class MainViewModel : ReactiveObject, IDisposable
             }
             
             // Clear all lanes and reset to defaults
-            _laneController.ClearLanes();
+            _laneController.ClearAllLanes();
             _laneController.InitializeDefaultLanes();
             
             // Reset properties to defaults
@@ -732,7 +733,7 @@ public class MainViewModel : ReactiveObject, IDisposable
         return new ProjectConfiguration
         {
             BPM = BPM,
-            IsAbletionSyncEnabled = IsAbletonSyncEnabled,
+            IsAbletonSyncEnabled = IsAbletonSyncEnabled,
             Lanes = new System.Collections.Generic.List<Lane>(Lanes),
             Version = "1.0",
             Created = DateTime.UtcNow
@@ -742,10 +743,10 @@ public class MainViewModel : ReactiveObject, IDisposable
     private void ApplyProjectConfiguration(ProjectConfiguration config)
     {
         BPM = config.BPM;
-        IsAbletonSyncEnabled = config.IsAbletionSyncEnabled;
+        IsAbletonSyncEnabled = config.IsAbletonSyncEnabled;
         
         // Clear existing lanes and add loaded ones
-        _laneController.ClearLanes();
+        _laneController.ClearAllLanes();
         foreach (var lane in config.Lanes)
         {
             _laneController.AddLane(lane.Name, lane.MidiChannel);
@@ -869,7 +870,7 @@ public class MainViewModel : ReactiveObject, IDisposable
     private void OnPlayheadMoved(object? sender, PlayheadEventArgs e)
     {
         // Update playhead angle on UI thread
-        PlayheadAngle = e.Angle;
+        PlayheadAngle = e.CurrentAngle;
     }
 
     private void OnMarkerTriggered(object? sender, MarkerTriggeredEventArgs e)

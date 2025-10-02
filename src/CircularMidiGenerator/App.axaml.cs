@@ -32,14 +32,15 @@ public partial class App : Application
             
             try
             {
+                // Create main window first
+                desktop.MainWindow = new MainWindow();
+                
                 // Initialize core services
                 await InitializeServicesAsync();
                 
+                // Now create and set the view model
                 var mainViewModel = ServiceProvider?.GetRequiredService<MainViewModel>();
-                desktop.MainWindow = new MainWindow
-                {
-                    DataContext = mainViewModel,
-                };
+                desktop.MainWindow.DataContext = mainViewModel;
 
                 // Handle application shutdown
                 desktop.ShutdownRequested += OnShutdownRequested;
