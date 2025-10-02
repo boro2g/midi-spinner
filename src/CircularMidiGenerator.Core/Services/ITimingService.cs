@@ -89,4 +89,10 @@ public interface ITimingService
     /// Whether Ableton sync is enabled
     /// </summary>
     bool IsAbletonSyncEnabled { get; }
+    
+    /// <summary>
+    /// Set the markers to track for triggering
+    /// </summary>
+    /// <param name="markers">Collection of markers to track</param>
+    void SetMarkers(System.Collections.Generic.IEnumerable<Marker> markers);
 }

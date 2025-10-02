@@ -1,14 +1,89 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:CircularMidiGenerator.ViewModels"
+        xmlns:controls="using:CircularMidiGenerator.Controls"
+        xmlns:converters="using:CircularMidiGenerator.Converters"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
+        mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="700"
         x:Class="CircularMidiGenerator.Views.MainWindow"
         x:DataType="vm:MainViewModel"
         Icon="/Assets/avalonia-logo.ico"
-        Title="Circular MIDI Generator"
-        Width="800" Height="600">
+        Title="🎵 Circular MIDI Generator"
+        Width="1000" Height="700"
+        Background="Linear(0%,0% 100%,100%, #1A0B2E 0%, #2D1B69 50%, #1A0B2E 100%)"
+        MinWidth="800" MinHeight="600">
+
+    <Window.Resources>
+        <converters:BoolToColorConverter x:Key="BoolToColorConverter"/>
+        
+        <!-- Vibrant Color Brushes -->
+        <SolidColorBrush x:Key="PrimaryPurple" Color="#6A4C93"/>
+        <SolidColorBrush x:Key="AccentPink" Color="#FF6B9D"/>
+        <SolidColorBrush x:Key="AccentOrange" Color="#FF8E53"/>
+        <SolidColorBrush x:Key="AccentYellow" Color="#FFD23F"/>
+        <SolidColorBrush x:Key="AccentGreen" Color="#06FFA5"/>
+        <SolidColorBrush x:Key="AccentBlue" Color="#4ECDC4"/>
+        <SolidColorBrush x:Key="DarkPanel" Color="#2A1B3D"/>
+        <SolidColorBrush x:Key="MediumPanel" Color="#44318D"/>
+        <SolidColorBrush x:Key="LightPanel" Color="#6A4C93"/>
+        
+        <!-- Gradient Brushes -->
+        <LinearGradientBrush x:Key="PlayButtonGradient" StartPoint="0%,0%" EndPoint="100%,100%">
+            <GradientStop Color="#06FFA5" Offset="0"/>
+            <GradientStop Color="#4ECDC4" Offset="1"/>
+        </LinearGradientBrush>
+        
+        <LinearGradientBrush x:Key="StopButtonGradient" StartPoint="0%,0%" EndPoint="100%,100%">
+            <GradientStop Color="#FF6B9D" Offset="0"/>
+            <GradientStop Color="#FF8E53" Offset="1"/>
+        </LinearGradientBrush>
+        
+        <LinearGradientBrush x:Key="SaveButtonGradient" StartPoint="0%,0%" EndPoint="100%,100%">
+            <GradientStop Color="#4ECDC4" Offset="0"/>
+            <GradientStop Color="#6A4C93" Offset="1"/>
+        </LinearGradientBrush>
+        
+        <LinearGradientBrush x:Key="LoadButtonGradient" StartPoint="0%,0%" EndPoint="100%,100%">
+            <GradientStop Color="#FFD23F" Offset="0"/>
+            <GradientStop Color="#FF8E53" Offset="1"/>
+        </LinearGradientBrush>
+        
+        <!-- Button Styles -->
+        <Style x:Key="PlayfulButton" TargetType="Button">
+            <Setter Property="Padding" Value="20,10"/>
+            <Setter Property="CornerRadius" Value="25"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Transitions">
+                <Transitions>
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.2"/>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.2"/>
+                </Transitions>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsPointerOver" Value="True">
+                    <Setter Property="RenderTransform" Value="scale(1.05)"/>
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="RenderTransform" Value="scale(0.95)"/>
+                    <Setter Property="Opacity" Value="0.8"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        
+        <!-- Panel Styles -->
+        <Style x:Key="PlayfulPanel" TargetType="Border">
+            <Setter Property="CornerRadius" Value="15"/>
+            <Setter Property="Background" Value="{StaticResource DarkPanel}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource AccentPink}"/>
+            <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="Padding" Value="15"/>
+        </Style>
+    </Window.Resources>
 
     <Design.DataContext>
         <!-- This only sets the DataContext for the previewer in an IDE,
@@ -20,119 +95,231 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
+        
+        <!-- Menu Bar -->
+        <Menu Grid.Row="0" Background="{StaticResource DarkPanel}" Foreground="White" FontWeight="SemiBold">
+            <MenuItem Header="_File">
+                <MenuItem Header="_New Project" InputGesture="Ctrl+N" Command="{Binding NewProjectCommand}"/>
+                <MenuItem Header="_Open..." InputGesture="Ctrl+O" Command="{Binding LoadConfigurationCommand}"/>
+                <MenuItem Header="_Save" InputGesture="Ctrl+S" Command="{Binding SaveConfigurationCommand}"/>
+                <MenuItem Header="Save _As..." InputGesture="Ctrl+Shift+S" Command="{Binding SaveAsCommand}"/>
+                <Separator/>
+                <MenuItem Header="E_xit" InputGesture="Alt+F4"/>
+            </MenuItem>
+            <MenuItem Header="_Edit">
+                <MenuItem Header="_Undo" InputGesture="Ctrl+Z" IsEnabled="False"/>
+                <MenuItem Header="_Redo" InputGesture="Ctrl+Y" IsEnabled="False"/>
+                <Separator/>
+                <MenuItem Header="Select _All Markers" InputGesture="Ctrl+A" Command="{Binding SelectAllMarkersCommand}"/>
+                <MenuItem Header="_Clear All Markers" InputGesture="Ctrl+Delete" Command="{Binding ClearAllMarkersCommand}"/>
+            </MenuItem>
+            <MenuItem Header="_Playback">
+                <MenuItem Header="_Play" InputGesture="Space" Command="{Binding PlayCommand}"/>
+                <MenuItem Header="_Stop" InputGesture="Escape" Command="{Binding StopCommand}"/>
+                <Separator/>
+                <MenuItem Header="Stop All _Notes" InputGesture="Ctrl+." Command="{Binding StopAllNotesCommand}"/>
+            </MenuItem>
+            <MenuItem Header="_View">
+                <MenuItem Header="Show _Grid" IsCheckable="True" IsChecked="{Binding IsQuantizationEnabled}" Command="{Binding ToggleQuantizationCommand}"/>
+                <MenuItem Header="Show _Lane Panel" IsCheckable="True" IsChecked="True"/>
+            </MenuItem>
+            <MenuItem Header="_Help">
+                <MenuItem Header="_About Circular MIDI Generator" Command="{Binding ShowAboutCommand}"/>
+                <MenuItem Header="_User Guide" Command="{Binding ShowUserGuideCommand}"/>
+            </MenuItem>
+        </Menu>
+        
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="300"/>
+            </Grid.ColumnDefinitions>
+        
+        <!-- Main Content Area -->
+        <Grid Grid.Column="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
 
-        <!-- Top Control Panel -->
-        <Border Grid.Row="0" Background="#2D2D30" Padding="10">
-            <StackPanel Orientation="Horizontal" Spacing="15">
-                <!-- Playback Controls -->
-                <Button Content="Play" 
-                        Command="{Binding PlayCommand}"
-                        IsEnabled="{Binding !IsPlaying}"
-                        Background="#4CAF50"
-                        Foreground="White"
-                        Padding="15,5"/>
-                
-                <Button Content="Stop" 
-                        Command="{Binding StopCommand}"
-                        IsEnabled="{Binding IsPlaying}"
-                        Background="#F44336"
-                        Foreground="White"
-                        Padding="15,5"/>
+            <!-- Top Control Panel -->
+            <Border Grid.Row="0" Style="{StaticResource PlayfulPanel}" Margin="10,10,10,5">
+                <StackPanel Orientation="Horizontal" Spacing="25" HorizontalAlignment="Center">
+                    <!-- Playback Controls -->
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <Button Content="🎵 Play" 
+                                Command="{Binding PlayCommand}"
+                                IsEnabled="{Binding !IsPlaying}"
+                                Background="{StaticResource PlayButtonGradient}"
+                                Style="{StaticResource PlayfulButton}"/>
+                        
+                        <Button Content="⏹ Stop" 
+                                Command="{Binding StopCommand}"
+                                IsEnabled="{Binding IsPlaying}"
+                                Background="{StaticResource StopButtonGradient}"
+                                Style="{StaticResource PlayfulButton}"/>
+                    </StackPanel>
 
-                <!-- BPM Control -->
-                <StackPanel Orientation="Horizontal" Spacing="5">
-                    <TextBlock Text="BPM:" VerticalAlignment="Center" Foreground="White"/>
-                    <NumericUpDown Value="{Binding BPM}" 
-                                   Minimum="60" 
-                                   Maximum="200" 
-                                   Increment="1"
-                                   Width="80"/>
+                    <!-- BPM Control -->
+                    <Border Background="{StaticResource MediumPanel}" CornerRadius="20" Padding="20,12" 
+                            BorderBrush="{StaticResource AccentYellow}" BorderThickness="2">
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <TextBlock Text="🎼 BPM:" VerticalAlignment="Center" Foreground="White" FontWeight="Bold" FontSize="14"/>
+                            <NumericUpDown Value="{Binding BPM}" 
+                                           Minimum="60" 
+                                           Maximum="200" 
+                                           Increment="1"
+                                           Width="90"
+                                           Background="{StaticResource LightPanel}"
+                                           Foreground="White"
+                                           BorderBrush="{StaticResource AccentYellow}"
+                                           BorderThickness="2"
+                                           CornerRadius="10"
+                                           FontWeight="Bold"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Ableton Sync -->
+                    <Border Background="{StaticResource MediumPanel}" CornerRadius="20" Padding="20,12"
+                            BorderBrush="{StaticResource AccentBlue}" BorderThickness="2">
+                        <CheckBox Content="🔗 Ableton Sync" 
+                                  IsChecked="{Binding IsAbletonSyncEnabled}"
+                                  Foreground="White"
+                                  FontWeight="Bold"
+                                  FontSize="14"/>
+                    </Border>
+
+                    <!-- Quantization Controls -->
+                    <Border Background="{StaticResource MediumPanel}" CornerRadius="20" Padding="20,12"
+                            BorderBrush="{StaticResource AccentGreen}" BorderThickness="2">
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <CheckBox Content="📐 Quantize" 
+                                      IsChecked="{Binding IsQuantizationEnabled}"
+                                      Command="{Binding ToggleQuantizationCommand}"
+                                      Foreground="White"
+                                      FontWeight="Bold"
+                                      FontSize="14"/>
+                            
+                            <ComboBox ItemsSource="{Binding QuantizationDivisions}"
+                                      SelectedItem="{Binding SelectedQuantizationDivision}"
+                                      IsEnabled="{Binding IsQuantizationEnabled}"
+                                      Width="90"
+                                      Background="{StaticResource LightPanel}"
+                                      Foreground="White"
+                                      BorderBrush="{StaticResource AccentGreen}"
+                                      BorderThickness="2"
+                                      CornerRadius="10"
+                                      FontWeight="Bold"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- File Operations -->
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <Button Content="💾 Save" 
+                                Command="{Binding SaveConfigurationCommand}"
+                                Background="{StaticResource SaveButtonGradient}"
+                                Style="{StaticResource PlayfulButton}"/>
+                        
+                        <Button Content="📁 Load" 
+                                Command="{Binding LoadConfigurationCommand}"
+                                Background="{StaticResource LoadButtonGradient}"
+                                Style="{StaticResource PlayfulButton}"/>
+                    </StackPanel>
                 </StackPanel>
+            </Border>
 
-                <!-- Ableton Sync -->
-                <CheckBox Content="Ableton Sync" 
-                          IsChecked="{Binding IsAbletonSyncEnabled}"
-                          Foreground="White"/>
+            <!-- Main Canvas Area -->
+            <Border Grid.Row="1" Margin="10,5,10,5" CornerRadius="25"
+                    BorderBrush="{StaticResource AccentPink}" BorderThickness="3">
+                <Border.Background>
+                    <RadialGradientBrush Center="50%,50%" RadiusX="100%" RadiusY="100%">
+                        <GradientStop Color="#0F0A1A" Offset="0"/>
+                        <GradientStop Color="#1A0B2E" Offset="0.7"/>
+                        <GradientStop Color="#2D1B69" Offset="1"/>
+                    </RadialGradientBrush>
+                </Border.Background>
+                <Grid>
+                    <!-- Animated background particles -->
+                    <Canvas>
+                        <Ellipse Width="4" Height="4" Fill="{StaticResource AccentPink}" Opacity="0.6" Canvas.Left="100" Canvas.Top="50"/>
+                        <Ellipse Width="3" Height="3" Fill="{StaticResource AccentYellow}" Opacity="0.4" Canvas.Left="200" Canvas.Top="150"/>
+                        <Ellipse Width="5" Height="5" Fill="{StaticResource AccentBlue}" Opacity="0.5" Canvas.Left="300" Canvas.Top="80"/>
+                        <Ellipse Width="2" Height="2" Fill="{StaticResource AccentGreen}" Opacity="0.7" Canvas.Left="150" Canvas.Top="200"/>
+                        <Ellipse Width="4" Height="4" Fill="{StaticResource AccentOrange}" Opacity="0.3" Canvas.Left="400" Canvas.Top="120"/>
+                    </Canvas>
+                    
+                    <!-- Circular Canvas Control -->
+                    <controls:CircularCanvas x:Name="CircularCanvas"
+                                           HorizontalAlignment="Stretch"
+                                           VerticalAlignment="Stretch"
+                                           Margin="30"
+                                           Background="Transparent"/>
+                    
+                    <!-- Instructions overlay with glow effect -->
+                    <Border HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,30"
+                            Background="{StaticResource DarkPanel}" CornerRadius="15" Padding="20,10"
+                            BorderBrush="{StaticResource AccentPink}" BorderThickness="1" Opacity="0.9">
+                        <TextBlock Text="✨ Click to place markers • Drag to move • Drag outside to remove ✨" 
+                                   Foreground="White"
+                                   FontSize="14"
+                                   FontWeight="SemiBold"
+                                   TextAlignment="Center"/>
+                    </Border>
+                </Grid>
+            </Border>
 
-                <!-- File Operations -->
-                <Button Content="Save" 
-                        Command="{Binding SaveConfigurationCommand}"
-                        Background="#2196F3"
-                        Foreground="White"
-                        Padding="10,5"/>
-                
-                <Button Content="Load" 
-                        Command="{Binding LoadConfigurationCommand}"
-                        Background="#FF9800"
-                        Foreground="White"
-                        Padding="10,5"/>
-            </StackPanel>
-        </Border>
+            <!-- Status Bar -->
+            <Border Grid.Row="2" Background="{StaticResource DarkPanel}" 
+                    BorderBrush="{StaticResource AccentPink}" BorderThickness="0,2,0,0" 
+                    Padding="20,12" Margin="10,5,10,10" CornerRadius="0,0,15,15">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <TextBlock Grid.Column="0" 
+                               Text="{Binding StatusMessage}" 
+                               Foreground="White" 
+                               VerticalAlignment="Center"
+                               FontWeight="SemiBold"
+                               FontSize="14"/>
+                    
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="15">
+                        <TextBlock Text="{Binding SelectedMidiDevice, StringFormat='🎹 MIDI: {0}'}" 
+                                   Foreground="{StaticResource AccentBlue}" 
+                                   VerticalAlignment="Center"
+                                   FontWeight="SemiBold"/>
+                        
+                        <Ellipse Width="12" Height="12" 
+                                 Fill="{Binding IsMidiConnected, Converter={StaticResource BoolToColorConverter}}"
+                                 VerticalAlignment="Center">
+                            <Ellipse.Effect>
+                                <DropShadowEffect Color="{Binding IsMidiConnected, Converter={StaticResource BoolToColorConverter}}" 
+                                                  BlurRadius="8" ShadowDepth="0" Opacity="0.8"/>
+                            </Ellipse.Effect>
+                        </Ellipse>
+                    </StackPanel>
+                    
+                    <TextBlock Grid.Column="2" 
+                               Text="{Binding PlayheadAngle, StringFormat='🎯 {0:F1}°'}" 
+                               Foreground="{StaticResource AccentYellow}" 
+                               VerticalAlignment="Center"
+                               Margin="20,0,0,0"
+                               FontWeight="SemiBold"/>
+                </Grid>
+            </Border>
+        </Grid>
 
-        <!-- Main Canvas Area (Placeholder for CircularCanvas) -->
-        <Border Grid.Row="1" Background="#1E1E1E" Margin="10">
-            <Grid>
-                <!-- Placeholder for circular canvas - will be implemented in later tasks -->
-                <Ellipse Fill="#333333" 
-                         Stroke="#555555" 
-                         StrokeThickness="2"
-                         Width="400" 
-                         Height="400"
-                         HorizontalAlignment="Center"
-                         VerticalAlignment="Center"/>
-                
-                <TextBlock Text="Circular Canvas Placeholder" 
-                           HorizontalAlignment="Center" 
-                           VerticalAlignment="Center"
-                           Foreground="White"
-                           FontSize="16"/>
-            </Grid>
-        </Border>
-
-        <!-- Bottom Lane Panel -->
-        <Border Grid.Row="2" Background="#2D2D30" Padding="10">
-            <StackPanel>
-                <TextBlock Text="Lanes" Foreground="White" FontWeight="Bold" Margin="0,0,0,5"/>
-                <ItemsControl ItemsSource="{Binding Lanes}">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <StackPanel Orientation="Horizontal" Spacing="10"/>
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <Border Background="#404040" 
-                                    CornerRadius="5" 
-                                    Padding="10,5"
-                                    MinWidth="100">
-                                <StackPanel>
-                                    <TextBlock Text="{Binding Name}" 
-                                               Foreground="White" 
-                                               FontWeight="Bold"
-                                               HorizontalAlignment="Center"/>
-                                    <TextBlock Text="{Binding MidiChannel, StringFormat='Ch {0}'}" 
-                                               Foreground="#CCCCCC" 
-                                               FontSize="10"
-                                               HorizontalAlignment="Center"/>
-                                    <StackPanel Orientation="Horizontal" 
-                                                HorizontalAlignment="Center" 
-                                                Spacing="5" 
-                                                Margin="0,5,0,0">
-                                        <CheckBox Content="M" 
-                                                  IsChecked="{Binding IsMuted}"
-                                                  ToolTip.Tip="Mute"/>
-                                        <CheckBox Content="S" 
-                                                  IsChecked="{Binding IsSoloed}"
-                                                  ToolTip.Tip="Solo"/>
-                                    </StackPanel>
-                                </StackPanel>
-                            </Border>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </StackPanel>
-        </Border>
+            <!-- Lane Management Panel -->
+            <Border Grid.Column="1" Background="{StaticResource DarkPanel}" 
+                    BorderBrush="{StaticResource AccentOrange}" BorderThickness="3,0,0,0"
+                    Margin="0,5,10,5" CornerRadius="0,25,25,0">
+                <controls:LanePanel DataContext="{Binding}"/>
+            </Border>
+        </Grid>
     </Grid>
 </Window>

@@ -26,6 +26,18 @@ public class CircularCanvas : Control
         AvaloniaProperty.Register<CircularCanvas, ObservableCollection<Marker>?>(nameof(Markers));
 
     /// <summary>
+    /// Collection of lanes for visual grouping and color coding
+    /// </summary>
+    public static readonly StyledProperty<ObservableCollection<Lane>?> LanesProperty =
+        AvaloniaProperty.Register<CircularCanvas, ObservableCollection<Lane>?>(nameof(Lanes));
+
+    /// <summary>
+    /// Currently selected lane ID for new marker placement
+    /// </summary>
+    public static readonly StyledProperty<int> SelectedLaneIdProperty =
+        AvaloniaProperty.Register<CircularCanvas, int>(nameof(SelectedLaneId), 0);
+
+    /// <summary>
     /// Current playhead angle in degrees (0-360)
     /// </summary>
     public static readonly StyledProperty<double> PlayheadAngleProperty =
@@ -55,6 +67,48 @@ public class CircularCanvas : Control
     public static readonly StyledProperty<Marker?> SelectedMarkerProperty =
         AvaloniaProperty.Register<CircularCanvas, Marker?>(nameof(SelectedMarker));
 
+    /// <summary>
+    /// Collection of currently selected markers for multi-selection
+    /// </summary>
+    public static readonly StyledProperty<ObservableCollection<Marker>?> SelectedMarkersProperty =
+        AvaloniaProperty.Register<CircularCanvas, ObservableCollection<Marker>?>(nameof(SelectedMarkers));
+
+    /// <summary>
+    /// Enables multi-touch gesture support
+    /// </summary>
+    public static readonly StyledProperty<bool> IsMultiTouchEnabledProperty =
+        AvaloniaProperty.Register<CircularCanvas, bool>(nameof(IsMultiTouchEnabled), true);
+
+    /// <summary>
+    /// Enables pinch-to-zoom functionality
+    /// </summary>
+    public static readonly StyledProperty<bool> IsPinchZoomEnabledProperty =
+        AvaloniaProperty.Register<CircularCanvas, bool>(nameof(IsPinchZoomEnabled), true);
+
+    /// <summary>
+    /// Enables rotation gestures for disk control
+    /// </summary>
+    public static readonly StyledProperty<bool> IsRotationGestureEnabledProperty =
+        AvaloniaProperty.Register<CircularCanvas, bool>(nameof(IsRotationGestureEnabled), true);
+
+    /// <summary>
+    /// Enables haptic feedback for touch interactions
+    /// </summary>
+    public static readonly StyledProperty<bool> IsHapticFeedbackEnabledProperty =
+        AvaloniaProperty.Register<CircularCanvas, bool>(nameof(IsHapticFeedbackEnabled), true);
+
+    /// <summary>
+    /// Current zoom level for the canvas
+    /// </summary>
+    public static readonly StyledProperty<double> ZoomLevelProperty =
+        AvaloniaProperty.Register<CircularCanvas, double>(nameof(ZoomLevel), 1.0);
+
+    /// <summary>
+    /// Markers that are currently being dragged outside the disk (for removal animation)
+    /// </summary>
+    public static readonly StyledProperty<ObservableCollection<Marker>?> MarkersBeingRemovedProperty =
+        AvaloniaProperty.Register<CircularCanvas, ObservableCollection<Marker>?>(nameof(MarkersBeingRemoved));
+
     #endregion
 
     #region Properties
@@ -63,6 +117,18 @@ public class CircularCanvas : Control
     {
         get => GetValue(MarkersProperty);
         set => SetValue(MarkersProperty, value);
+    }
+
+    public ObservableCollection<Lane>? Lanes
+    {
+        get => GetValue(LanesProperty);
+        set => SetValue(LanesProperty, value);
+    }
+
+    public int SelectedLaneId
+    {
+        get => GetValue(SelectedLaneIdProperty);
+        set => SetValue(SelectedLaneIdProperty, value);
     }
 
     public double PlayheadAngle
@@ -95,6 +161,48 @@ public class CircularCanvas : Control
         set => SetValue(SelectedMarkerProperty, value);
     }
 
+    public ObservableCollection<Marker>? SelectedMarkers
+    {
+        get => GetValue(SelectedMarkersProperty);
+        set => SetValue(SelectedMarkersProperty, value);
+    }
+
+    public bool IsMultiTouchEnabled
+    {
+        get => GetValue(IsMultiTouchEnabledProperty);
+        set => SetValue(IsMultiTouchEnabledProperty, value);
+    }
+
+    public bool IsPinchZoomEnabled
+    {
+        get => GetValue(IsPinchZoomEnabledProperty);
+        set => SetValue(IsPinchZoomEnabledProperty, value);
+    }
+
+    public bool IsRotationGestureEnabled
+    {
+        get => GetValue(IsRotationGestureEnabledProperty);
+        set => SetValue(IsRotationGestureEnabledProperty, value);
+    }
+
+    public bool IsHapticFeedbackEnabled
+    {
+        get => GetValue(IsHapticFeedbackEnabledProperty);
+        set => SetValue(IsHapticFeedbackEnabledProperty, value);
+    }
+
+    public double ZoomLevel
+    {
+        get => GetValue(ZoomLevelProperty);
+        set => SetValue(ZoomLevelProperty, value);
+    }
+
+    public ObservableCollection<Marker>? MarkersBeingRemoved
+    {
+        get => GetValue(MarkersBeingRemovedProperty);
+        set => SetValue(MarkersBeingRemovedProperty, value);
+    }
+
     #endregion
 
     #region Events
@@ -119,6 +227,36 @@ public class CircularCanvas : Control
     /// </summary>
     public event EventHandler<MarkerRemovedEventArgs>? MarkerRemoved;
 
+    /// <summary>
+    /// Raised when multiple markers are selected
+    /// </summary>
+    public event EventHandler<MultiMarkerSelectedEventArgs>? MultiMarkerSelected;
+
+    /// <summary>
+    /// Raised when multiple markers are moved together
+    /// </summary>
+    public event EventHandler<MultiMarkerMovedEventArgs>? MultiMarkerMoved;
+
+    /// <summary>
+    /// Raised when zoom level changes
+    /// </summary>
+    public event EventHandler<ZoomChangedEventArgs>? ZoomChanged;
+
+    /// <summary>
+    /// Raised when a marker starts being dragged outside the disk (for removal preview)
+    /// </summary>
+    public event EventHandler<MarkerRemovalPreviewEventArgs>? MarkerRemovalPreview;
+
+    /// <summary>
+    /// Raised when a rotation gesture is performed
+    /// </summary>
+    public event EventHandler<RotationGestureEventArgs>? RotationGesture;
+
+    /// <summary>
+    /// Raised when haptic feedback should be triggered
+    /// </summary>
+    public event EventHandler<HapticFeedbackEventArgs>? HapticFeedbackRequested;
+
     #endregion
 
     #region Private Fields
@@ -128,6 +266,34 @@ public class CircularCanvas : Control
     private bool _isDragging;
     private Marker? _draggedMarker;
     private Point _lastPointerPosition;
+
+    // Multi-touch and gesture support
+    private readonly Dictionary<int, PointerInfo> _activePointers = new();
+    private readonly Dictionary<Marker, Point> _multiDragStartPositions = new();
+    private bool _isMultiDragging;
+    private bool _isSelectionMode;
+    private Point _selectionStartPoint;
+    private Rect _selectionRect;
+
+    // Pinch-to-zoom support
+    private bool _isPinching;
+    private double _initialPinchDistance;
+    private double _initialZoomLevel;
+    private Point _pinchCenter;
+
+    // Rotation gesture support
+    private bool _isRotating;
+    private double _initialRotationAngle;
+    private double _initialDiskRotation;
+    private Point _rotationCenter;
+
+    // Haptic feedback support
+    private DateTime _lastHapticFeedback = DateTime.MinValue;
+    private readonly TimeSpan _hapticFeedbackCooldown = TimeSpan.FromMilliseconds(50);
+
+    // Marker removal animation support
+    private readonly Dictionary<Marker, RemovalAnimationInfo> _removalAnimations = new();
+    private DispatcherTimer? _animationTimer;
 
     // Visual styling
     private readonly IBrush _diskBrush = new SolidColorBrush(Color.FromRgb(45, 45, 55));
@@ -143,14 +309,401 @@ public class CircularCanvas : Control
     {
         // Subscribe to property changes for invalidation
         this.GetObservable(MarkersProperty).Subscribe(_ => InvalidateVisual());
+        this.GetObservable(LanesProperty).Subscribe(_ => InvalidateVisual());
+        this.GetObservable(SelectedLaneIdProperty).Subscribe(_ => InvalidateVisual());
         this.GetObservable(PlayheadAngleProperty).Subscribe(_ => InvalidateVisual());
         this.GetObservable(IsQuantizationEnabledProperty).Subscribe(_ => InvalidateVisual());
         this.GetObservable(GridLinesProperty).Subscribe(_ => InvalidateVisual());
         this.GetObservable(DiskRotationProperty).Subscribe(_ => InvalidateVisual());
         this.GetObservable(SelectedMarkerProperty).Subscribe(_ => InvalidateVisual());
+        this.GetObservable(SelectedMarkersProperty).Subscribe(_ => InvalidateVisual());
+        this.GetObservable(ZoomLevelProperty).Subscribe(_ => InvalidateVisual());
+
+        // Initialize selected markers collection
+        SelectedMarkers = new ObservableCollection<Marker>();
+        MarkersBeingRemoved = new ObservableCollection<Marker>();
+
+        // Set up animation timer for smooth removal animations
+        _animationTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(16) // ~60 FPS
+        };
+        _animationTimer.Tick += OnAnimationTick;
 
         // Set up input handling - Control doesn't have Background property
         // Input events will be handled through pointer events
+    }
+
+    #endregion
+
+    #region Helper Classes
+
+    /// <summary>
+    /// Information about an active pointer for multi-touch support
+    /// </summary>
+    private class PointerInfo
+    {
+        public Point Position { get; set; }
+        public Point StartPosition { get; set; }
+        public Marker? AssociatedMarker { get; set; }
+        public DateTime StartTime { get; set; }
+        public bool IsDragging { get; set; }
+
+        public PointerInfo(Point position)
+        {
+            Position = position;
+            StartPosition = position;
+            StartTime = DateTime.Now;
+        }
+    }
+
+    /// <summary>
+    /// Information about a marker removal animation
+    /// </summary>
+    private class RemovalAnimationInfo
+    {
+        public Point CurrentPosition { get; set; }
+        public Point TargetPosition { get; set; }
+        public double Opacity { get; set; } = 1.0;
+        public double Scale { get; set; } = 1.0;
+        public DateTime StartTime { get; set; }
+        public TimeSpan Duration { get; set; } = TimeSpan.FromMilliseconds(300);
+        public bool IsOutsideDisk { get; set; }
+
+        public RemovalAnimationInfo(Point currentPosition, Point targetPosition)
+        {
+            CurrentPosition = currentPosition;
+            TargetPosition = targetPosition;
+            StartTime = DateTime.Now;
+        }
+
+        public double Progress => Math.Min(1.0, (DateTime.Now - StartTime).TotalMilliseconds / Duration.TotalMilliseconds);
+        public bool IsComplete => Progress >= 1.0;
+    }
+
+    #endregion
+
+    #region Multi-Touch Helper Methods
+
+    /// <summary>
+    /// Calculates the distance between two points
+    /// </summary>
+    private double CalculateDistance(Point p1, Point p2)
+    {
+        var dx = p1.X - p2.X;
+        var dy = p1.Y - p2.Y;
+        return Math.Sqrt(dx * dx + dy * dy);
+    }
+
+    /// <summary>
+    /// Calculates the center point between two points
+    /// </summary>
+    private Point CalculateCenter(Point p1, Point p2)
+    {
+        return new Point((p1.X + p2.X) / 2, (p1.Y + p2.Y) / 2);
+    }
+
+    /// <summary>
+    /// Finds all markers within a selection rectangle
+    /// </summary>
+    private List<Marker> FindMarkersInRect(Rect rect)
+    {
+        var markersInRect = new List<Marker>();
+        if (Markers == null) return markersInRect;
+
+        foreach (var marker in Markers)
+        {
+            var markerPosition = CalculatePosition(marker.Angle + DiskRotation, _radius * 0.85);
+            if (rect.Contains(markerPosition))
+            {
+                markersInRect.Add(marker);
+            }
+        }
+
+        return markersInRect;
+    }
+
+    /// <summary>
+    /// Updates the selection rectangle based on start and current points
+    /// </summary>
+    private void UpdateSelectionRect(Point startPoint, Point currentPoint)
+    {
+        var left = Math.Min(startPoint.X, currentPoint.X);
+        var top = Math.Min(startPoint.Y, currentPoint.Y);
+        var width = Math.Abs(currentPoint.X - startPoint.X);
+        var height = Math.Abs(currentPoint.Y - startPoint.Y);
+
+        _selectionRect = new Rect(left, top, width, height);
+    }
+
+    /// <summary>
+    /// Clears all current selections
+    /// </summary>
+    private void ClearSelection()
+    {
+        SelectedMarkers?.Clear();
+        SelectedMarker = null;
+        _isSelectionMode = false;
+    }
+
+    /// <summary>
+    /// Adds a marker to the selection
+    /// </summary>
+    private void AddToSelection(Marker marker)
+    {
+        if (SelectedMarkers == null) return;
+
+        if (!SelectedMarkers.Contains(marker))
+        {
+            SelectedMarkers.Add(marker);
+        }
+
+        // Update single selection for compatibility
+        if (SelectedMarkers.Count == 1)
+        {
+            SelectedMarker = marker;
+        }
+        else if (SelectedMarkers.Count > 1)
+        {
+            SelectedMarker = null; // Clear single selection when multiple are selected
+        }
+    }
+
+    /// <summary>
+    /// Removes a marker from the selection
+    /// </summary>
+    private void RemoveFromSelection(Marker marker)
+    {
+        if (SelectedMarkers == null) return;
+
+        SelectedMarkers.Remove(marker);
+
+        // Update single selection for compatibility
+        if (SelectedMarkers.Count == 1)
+        {
+            SelectedMarker = SelectedMarkers[0];
+        }
+        else if (SelectedMarkers.Count == 0)
+        {
+            SelectedMarker = null;
+        }
+    }
+
+    /// <summary>
+    /// Checks if a marker is currently selected
+    /// </summary>
+    private bool IsMarkerSelected(Marker marker)
+    {
+        return SelectedMarkers?.Contains(marker) == true;
+    }
+
+    /// <summary>
+    /// Starts removal animation for a marker
+    /// </summary>
+    private void StartRemovalAnimation(Marker marker, Point currentPosition)
+    {
+        if (_removalAnimations.ContainsKey(marker)) return;
+
+        // Calculate target position outside the disk (fade out direction)
+        var direction = new Point(
+            currentPosition.X - _center.X,
+            currentPosition.Y - _center.Y
+        );
+        var length = Math.Sqrt(direction.X * direction.X + direction.Y * direction.Y);
+        if (length > 0)
+        {
+            direction = new Point(direction.X / length, direction.Y / length);
+        }
+
+        var targetPosition = new Point(
+            _center.X + direction.X * (_radius * 1.5),
+            _center.Y + direction.Y * (_radius * 1.5)
+        );
+
+        var animationInfo = new RemovalAnimationInfo(currentPosition, targetPosition)
+        {
+            IsOutsideDisk = true
+        };
+
+        _removalAnimations[marker] = animationInfo;
+        MarkersBeingRemoved?.Add(marker);
+
+        // Start animation timer if not already running
+        if (!_animationTimer!.IsEnabled)
+        {
+            _animationTimer.Start();
+        }
+
+        // Notify about removal preview
+        MarkerRemovalPreview?.Invoke(this, new MarkerRemovalPreviewEventArgs(marker, true));
+    }
+
+    /// <summary>
+    /// Cancels removal animation for a marker (when dragged back into disk)
+    /// </summary>
+    private void CancelRemovalAnimation(Marker marker)
+    {
+        if (_removalAnimations.TryGetValue(marker, out var animationInfo))
+        {
+            _removalAnimations.Remove(marker);
+            MarkersBeingRemoved?.Remove(marker);
+
+            // Notify about removal preview cancellation
+            MarkerRemovalPreview?.Invoke(this, new MarkerRemovalPreviewEventArgs(marker, false));
+        }
+
+        // Stop animation timer if no more animations
+        if (_removalAnimations.Count == 0 && _animationTimer!.IsEnabled)
+        {
+            _animationTimer.Stop();
+        }
+    }
+
+    /// <summary>
+    /// Animation tick handler for smooth removal animations
+    /// </summary>
+    private void OnAnimationTick(object? sender, EventArgs e)
+    {
+        var completedAnimations = new List<Marker>();
+
+        foreach (var kvp in _removalAnimations.ToList())
+        {
+            var marker = kvp.Key;
+            var animation = kvp.Value;
+
+            var progress = animation.Progress;
+            var easedProgress = EaseOutCubic(progress);
+
+            // Update animation properties
+            animation.CurrentPosition = new Point(
+                Lerp(animation.CurrentPosition.X, animation.TargetPosition.X, easedProgress * 0.1),
+                Lerp(animation.CurrentPosition.Y, animation.TargetPosition.Y, easedProgress * 0.1)
+            );
+
+            animation.Opacity = 1.0 - easedProgress;
+            animation.Scale = 1.0 + (easedProgress * 0.5); // Slight scale up during removal
+
+            if (animation.IsComplete)
+            {
+                completedAnimations.Add(marker);
+            }
+        }
+
+        // Clean up completed animations
+        foreach (var marker in completedAnimations)
+        {
+            _removalAnimations.Remove(marker);
+            MarkersBeingRemoved?.Remove(marker);
+        }
+
+        // Stop timer if no more animations
+        if (_removalAnimations.Count == 0)
+        {
+            _animationTimer!.Stop();
+        }
+
+        // Trigger visual update
+        InvalidateVisual();
+    }
+
+    /// <summary>
+    /// Easing function for smooth animations
+    /// </summary>
+    private static double EaseOutCubic(double t)
+    {
+        return 1 - Math.Pow(1 - t, 3);
+    }
+
+    /// <summary>
+    /// Linear interpolation between two values
+    /// </summary>
+    private static double Lerp(double a, double b, double t)
+    {
+        return a + (b - a) * t;
+    }
+
+    /// <summary>
+    /// Enhanced boundary detection with visual feedback zones
+    /// </summary>
+    private bool IsPointNearDiskEdge(Point point, out double distanceFromEdge)
+    {
+        var distanceFromCenter = CalculateDistance(point);
+        distanceFromEdge = Math.Abs(distanceFromCenter - _radius);
+        
+        // Consider "near edge" if within 20 pixels of the boundary
+        return distanceFromEdge <= 20;
+    }
+
+    /// <summary>
+    /// Gets the removal feedback intensity based on distance from disk edge
+    /// </summary>
+    private double GetRemovalFeedbackIntensity(Point point)
+    {
+        var distanceFromCenter = CalculateDistance(point);
+        
+        if (distanceFromCenter <= _radius)
+        {
+            return 0.0; // Inside disk, no removal feedback
+        }
+        
+        var distanceOutside = distanceFromCenter - _radius;
+        var maxFeedbackDistance = _radius * 0.3; // Feedback zone extends 30% of radius outside
+        
+        return Math.Min(1.0, distanceOutside / maxFeedbackDistance);
+    }
+
+    /// <summary>
+    /// Calculates the angle between two vectors from a center point
+    /// </summary>
+    private double CalculateAngleBetweenVectors(Point center, Point p1, Point p2)
+    {
+        var v1 = new Point(p1.X - center.X, p1.Y - center.Y);
+        var v2 = new Point(p2.X - center.X, p2.Y - center.Y);
+        
+        var dot = v1.X * v2.X + v1.Y * v2.Y;
+        var cross = v1.X * v2.Y - v1.Y * v2.X;
+        
+        var angle = Math.Atan2(cross, dot) * 180.0 / Math.PI;
+        return angle;
+    }
+
+    /// <summary>
+    /// Triggers haptic feedback if enabled and not in cooldown
+    /// </summary>
+    private void TriggerHapticFeedback(HapticFeedbackType feedbackType, double intensity = 1.0)
+    {
+        if (!IsHapticFeedbackEnabled) return;
+        
+        var now = DateTime.Now;
+        if (now - _lastHapticFeedback < _hapticFeedbackCooldown) return;
+        
+        _lastHapticFeedback = now;
+        HapticFeedbackRequested?.Invoke(this, new HapticFeedbackEventArgs(feedbackType, intensity));
+    }
+
+    /// <summary>
+    /// Detects if a gesture is a rotation based on pointer movements
+    /// </summary>
+    private bool IsRotationGesture(Point center, Point p1Start, Point p1Current, Point p2Start, Point p2Current)
+    {
+        // Calculate initial and current angles for both pointers
+        var initialAngle1 = Math.Atan2(p1Start.Y - center.Y, p1Start.X - center.X);
+        var currentAngle1 = Math.Atan2(p1Current.Y - center.Y, p1Current.X - center.X);
+        var initialAngle2 = Math.Atan2(p2Start.Y - center.Y, p2Start.X - center.X);
+        var currentAngle2 = Math.Atan2(p2Current.Y - center.Y, p2Current.X - center.X);
+        
+        var deltaAngle1 = currentAngle1 - initialAngle1;
+        var deltaAngle2 = currentAngle2 - initialAngle2;
+        
+        // Normalize angles to [-π, π]
+        deltaAngle1 = ((deltaAngle1 + Math.PI) % (2 * Math.PI)) - Math.PI;
+        deltaAngle2 = ((deltaAngle2 + Math.PI) % (2 * Math.PI)) - Math.PI;
+        
+        // Check if both pointers are rotating in the same direction
+        var rotationThreshold = Math.PI / 12; // 15 degrees
+        return Math.Abs(deltaAngle1) > rotationThreshold && 
+               Math.Abs(deltaAngle2) > rotationThreshold &&
+               Math.Sign(deltaAngle1) == Math.Sign(deltaAngle2);
     }
 
     #endregion
@@ -243,7 +796,16 @@ public class CircularCanvas : Control
             .First();
             
         // Snap if within reasonable distance (e.g., 15 degrees)
-        return nearestGridLine.Distance <= 15 ? nearestGridLine.GridAngle : angle;
+        if (nearestGridLine.Distance <= 15)
+        {
+            // Trigger haptic feedback for grid snapping
+            var snapIntensity = 1.0 - (nearestGridLine.Distance / 15.0);
+            TriggerHapticFeedback(HapticFeedbackType.GridSnap, snapIntensity);
+            
+            return nearestGridLine.GridAngle;
+        }
+        
+        return angle;
     }
 
     #endregion
@@ -255,22 +817,72 @@ public class CircularCanvas : Control
         base.OnPointerPressed(e);
         
         var position = e.GetPosition(this);
+        var pointerId = e.Pointer.Id;
+        
+        // Store pointer information for multi-touch support
+        var pointerInfo = new PointerInfo(position);
+        _activePointers[pointerId] = pointerInfo;
+        
+        // Handle multi-touch gestures
+        if (IsMultiTouchEnabled && _activePointers.Count > 1)
+        {
+            HandleMultiTouchPressed(e);
+            return;
+        }
+        
         _lastPointerPosition = position;
+        
+        // Check for keyboard modifiers
+        var keyModifiers = e.KeyModifiers;
+        var isCtrlPressed = keyModifiers.HasFlag(KeyModifiers.Control);
+        var isShiftPressed = keyModifiers.HasFlag(KeyModifiers.Shift);
         
         // Check if clicking on an existing marker
         var clickedMarker = FindMarkerAtPosition(position);
         
         if (clickedMarker != null)
         {
-            // Enhanced marker selection and drag initiation
-            SelectedMarker = clickedMarker;
-            _isDragging = true;
-            _draggedMarker = clickedMarker;
+            pointerInfo.AssociatedMarker = clickedMarker;
             
-            // Visual feedback for drag start
+            // Handle multi-selection with Ctrl key
+            if (isCtrlPressed)
+            {
+                if (IsMarkerSelected(clickedMarker))
+                {
+                    RemoveFromSelection(clickedMarker);
+                }
+                else
+                {
+                    AddToSelection(clickedMarker);
+                }
+            }
+            else if (isShiftPressed && SelectedMarkers?.Count > 0)
+            {
+                // Add to selection without clearing existing selection
+                AddToSelection(clickedMarker);
+            }
+            else
+            {
+                // Single selection (clear others unless already selected)
+                if (!IsMarkerSelected(clickedMarker))
+                {
+                    ClearSelection();
+                    AddToSelection(clickedMarker);
+                }
+                
+                // Start dragging
+                if (SelectedMarkers?.Count > 0)
+                {
+                    StartMultiMarkerDrag();
+                }
+            }
+            
+            // Visual feedback for selection
             Cursor = new Cursor(StandardCursorType.SizeAll);
-            
             MarkerSelected?.Invoke(this, new MarkerSelectedEventArgs(clickedMarker));
+            
+            // Trigger haptic feedback for marker selection
+            TriggerHapticFeedback(HapticFeedbackType.MarkerSelect);
             
             // Capture pointer for dragging
             e.Pointer.Capture(this);
@@ -278,37 +890,27 @@ public class CircularCanvas : Control
         }
         else if (IsPointInDisk(position))
         {
-            // Enhanced marker placement
-            var angle = CalculateAngle(position);
-            
-            // Apply quantization to new marker placement if enabled
-            if (IsQuantizationEnabled && GridLines != null)
+            // Start selection rectangle if Shift is pressed and no marker clicked
+            if (isShiftPressed)
             {
-                angle = SnapToNearestGridLine(angle);
+                _isSelectionMode = true;
+                _selectionStartPoint = position;
+                _selectionRect = new Rect(position, new Size(0, 0));
             }
-            
-            // Create new marker with color based on angle (chromatic mapping)
-            var semitone = (int)(angle / 30) % 12; // 360° / 12 semitones = 30° per semitone
-            var midiNote = 60 + semitone; // C4 + semitone
-            var color = Marker.GetColorFromMidiNote(midiNote);
-            var newMarker = new Marker(angle, System.Drawing.Color.FromArgb(color.R, color.G, color.B));
-            
-            // Set default velocity based on distance from center (closer = louder)
-            var distanceFromCenter = CalculateDistance(position);
-            var normalizedDistance = Math.Min(1.0, distanceFromCenter / _radius);
-            var velocity = (int)(127 * (1.0 - normalizedDistance * 0.3)); // 70-127 range
-            newMarker.Velocity = Math.Max(70, velocity);
-            
-            MarkerPlaced?.Invoke(this, new MarkerPlacedEventArgs(newMarker, position));
+            else
+            {
+                // Clear existing selection
+                ClearSelection();
+                
+                // Create new marker
+                CreateNewMarker(position);
+            }
         }
         else
         {
-            // Clicked outside disk - deselect any selected marker
-            if (SelectedMarker != null)
-            {
-                SelectedMarker = null;
-                InvalidateVisual();
-            }
+            // Clicked outside disk - clear selection
+            ClearSelection();
+            InvalidateVisual();
         }
     }
 
@@ -316,90 +918,62 @@ public class CircularCanvas : Control
     {
         base.OnPointerMoved(e);
         
+        var position = e.GetPosition(this);
+        var pointerId = e.Pointer.Id;
+        
+        // Update pointer information
+        if (_activePointers.TryGetValue(pointerId, out var pointerInfo))
+        {
+            pointerInfo.Position = position;
+        }
+        
+        // Handle multi-touch gestures
+        if (IsMultiTouchEnabled && _activePointers.Count > 1)
+        {
+            HandleMultiTouchMoved(e);
+            return;
+        }
+        
+        // Handle selection rectangle
+        if (_isSelectionMode)
+        {
+            UpdateSelectionRect(_selectionStartPoint, position);
+            
+            // Update selection based on rectangle
+            var markersInRect = FindMarkersInRect(_selectionRect);
+            ClearSelection();
+            foreach (var marker in markersInRect)
+            {
+                AddToSelection(marker);
+            }
+            
+            InvalidateVisual();
+            return;
+        }
+        
+        // Handle multi-marker dragging
+        if (_isMultiDragging && SelectedMarkers?.Count > 0)
+        {
+            HandleMultiMarkerDrag(position);
+            return;
+        }
+        
+        // Handle single marker dragging (legacy support)
         if (_isDragging && _draggedMarker != null)
         {
-            var currentPosition = e.GetPosition(this);
-            
-            // Enhanced drag behavior with visual feedback
-            var isOutsideDisk = !IsPointInDisk(currentPosition);
-            
-            if (isOutsideDisk)
-            {
-                // Visual feedback for removal - could add red tint or fade effect
-                // Marker removal will be handled in OnPointerReleased
-                InvalidateVisual();
-                return;
-            }
-            
-            // Update marker angle based on new position
-            var newAngle = CalculateAngle(currentPosition);
-            var oldAngle = _draggedMarker.Angle;
-            
-            // Enhanced velocity adjustment with keyboard modifier support
-            var verticalDelta = currentPosition.Y - _lastPointerPosition.Y;
-            var horizontalDelta = currentPosition.X - _lastPointerPosition.X;
-            
-            // Check for keyboard modifiers
-            var keyModifiers = e.KeyModifiers;
-            var isShiftPressed = keyModifiers.HasFlag(KeyModifiers.Shift);
-            var isCtrlPressed = keyModifiers.HasFlag(KeyModifiers.Control);
-            
-            var newVelocity = _draggedMarker.Velocity;
-            
-            // Velocity adjustment mode (Shift key or vertical movement)
-            if (isShiftPressed || Math.Abs(verticalDelta) > Math.Abs(horizontalDelta))
-            {
-                // More sensitive velocity adjustment when in velocity mode
-                var velocityChange = (int)(-verticalDelta * 0.8);
-                newVelocity = Math.Max(1, Math.Min(127, _draggedMarker.Velocity + velocityChange));
-                
-                // Don't update angle in velocity adjust mode
-                if (!isCtrlPressed)
-                {
-                    _draggedMarker.Velocity = newVelocity;
-                    InvalidateVisual();
-                    return;
-                }
-            }
-            else
-            {
-                // Normal velocity adjustment for position changes
-                var radialDistance = CalculateDistance(currentPosition);
-                var previousRadialDistance = CalculateDistance(_lastPointerPosition);
-                var radialDelta = radialDistance - previousRadialDistance;
-                
-                // Subtle velocity adjustment based on radial movement
-                var velocityChange = (int)(radialDelta * 0.1);
-                newVelocity = Math.Max(1, Math.Min(127, _draggedMarker.Velocity + velocityChange));
-            }
-            
-            // Apply quantization if enabled
-            if (IsQuantizationEnabled && GridLines != null)
-            {
-                newAngle = SnapToNearestGridLine(newAngle);
-            }
-            
-            _draggedMarker.Angle = newAngle;
-            _draggedMarker.Velocity = newVelocity;
-            
-            MarkerMoved?.Invoke(this, new MarkerMovedEventArgs(_draggedMarker, oldAngle, newAngle));
-            
-            _lastPointerPosition = currentPosition;
-            InvalidateVisual();
+            HandleSingleMarkerDrag(position, e.KeyModifiers);
+            return;
+        }
+        
+        // Hover effects for non-dragging state
+        var hoveredMarker = FindMarkerAtPosition(position);
+        if (hoveredMarker != null)
+        {
+            Cursor = new Cursor(StandardCursorType.Hand);
         }
         else
         {
-            // Hover effects for non-dragging state
-            var hoveredMarker = FindMarkerAtPosition(e.GetPosition(this));
-            if (hoveredMarker != null)
-            {
-                // Could implement hover highlighting here
-                Cursor = new Cursor(StandardCursorType.Hand);
-            }
-            else
-            {
-                Cursor = new Cursor(StandardCursorType.Arrow);
-            }
+            Cursor = new Cursor(StandardCursorType.Arrow);
         }
     }
 
@@ -407,40 +981,482 @@ public class CircularCanvas : Control
     {
         base.OnPointerReleased(e);
         
+        var position = e.GetPosition(this);
+        var pointerId = e.Pointer.Id;
+        
+        // Remove pointer from active pointers
+        _activePointers.Remove(pointerId);
+        
+        // Handle multi-touch gestures
+        if (IsMultiTouchEnabled && _activePointers.Count >= 1)
+        {
+            HandleMultiTouchReleased(e);
+            return;
+        }
+        
+        // End selection mode
+        if (_isSelectionMode)
+        {
+            _isSelectionMode = false;
+            
+            // Finalize selection
+            var markersInRect = FindMarkersInRect(_selectionRect);
+            if (markersInRect.Count > 0)
+            {
+                MultiMarkerSelected?.Invoke(this, new MultiMarkerSelectedEventArgs(markersInRect));
+            }
+            
+            InvalidateVisual();
+            e.Pointer.Capture(null);
+            return;
+        }
+        
+        // Handle multi-marker drag completion
+        if (_isMultiDragging)
+        {
+            CompleteMultiMarkerDrag(position);
+            e.Pointer.Capture(null);
+            return;
+        }
+        
+        // Handle single marker drag completion (legacy support)
         if (_isDragging && _draggedMarker != null)
         {
-            var position = e.GetPosition(this);
+            CompleteSingleMarkerDrag(position);
+            e.Pointer.Capture(null);
+            return;
+        }
+        
+        // Reset cursor
+        Cursor = new Cursor(StandardCursorType.Arrow);
+    }
+
+    #endregion
+
+    #region Multi-Touch Gesture Handling
+
+    private void HandleMultiTouchPressed(PointerPressedEventArgs e)
+    {
+        if (_activePointers.Count == 2)
+        {
+            var pointers = _activePointers.Values.ToArray();
+            var center = CalculateCenter(pointers[0].Position, pointers[1].Position);
             
-            // Enhanced drag completion handling
-            if (!IsPointInDisk(position))
+            // Initialize pinch-to-zoom if enabled
+            if (IsPinchZoomEnabled)
             {
-                // Marker removal with visual feedback
-                MarkerRemoved?.Invoke(this, new MarkerRemovedEventArgs(_draggedMarker));
+                _initialPinchDistance = CalculateDistance(pointers[0].Position, pointers[1].Position);
+                _pinchCenter = center;
+                _initialZoomLevel = ZoomLevel;
+                _isPinching = true;
             }
-            else
+            
+            // Initialize rotation gesture if enabled
+            if (IsRotationGestureEnabled)
             {
-                // Final quantization snap if enabled
-                if (IsQuantizationEnabled && GridLines != null)
+                _rotationCenter = center;
+                _initialRotationAngle = CalculateAngleBetweenVectors(
+                    center, pointers[0].Position, pointers[1].Position);
+                _initialDiskRotation = DiskRotation;
+                _isRotating = false; // Will be set to true when rotation is detected
+            }
+            
+            // Trigger haptic feedback for gesture start
+            TriggerHapticFeedback(HapticFeedbackType.GestureStart);
+            
+            e.Pointer.Capture(this);
+        }
+    }
+
+    private void HandleMultiTouchMoved(PointerEventArgs e)
+    {
+        if (_activePointers.Count == 2)
+        {
+            var pointers = _activePointers.Values.ToArray();
+            var currentCenter = CalculateCenter(pointers[0].Position, pointers[1].Position);
+            
+            // Handle pinch-to-zoom
+            if (_isPinching && IsPinchZoomEnabled)
+            {
+                var currentDistance = CalculateDistance(pointers[0].Position, pointers[1].Position);
+                var scaleFactor = currentDistance / _initialPinchDistance;
+                
+                var newZoomLevel = Math.Max(0.5, Math.Min(3.0, _initialZoomLevel * scaleFactor));
+                
+                if (Math.Abs(newZoomLevel - ZoomLevel) > 0.01)
                 {
-                    var snappedAngle = SnapToNearestGridLine(_draggedMarker.Angle);
-                    if (Math.Abs(snappedAngle - _draggedMarker.Angle) > 0.1)
-                    {
-                        var oldAngle = _draggedMarker.Angle;
-                        _draggedMarker.Angle = snappedAngle;
-                        MarkerMoved?.Invoke(this, new MarkerMovedEventArgs(_draggedMarker, oldAngle, snappedAngle));
-                    }
+                    ZoomLevel = newZoomLevel;
+                    ZoomChanged?.Invoke(this, new ZoomChangedEventArgs(ZoomLevel, _pinchCenter));
+                    
+                    // Trigger haptic feedback for zoom changes
+                    var zoomIntensity = Math.Abs(newZoomLevel - _initialZoomLevel) / 2.0;
+                    TriggerHapticFeedback(HapticFeedbackType.ZoomChange, Math.Min(1.0, zoomIntensity));
+                    
+                    InvalidateVisual();
                 }
             }
             
-            // Reset drag state
-            _isDragging = false;
-            _draggedMarker = null;
-            Cursor = new Cursor(StandardCursorType.Arrow);
-            
-            // Release pointer capture
-            e.Pointer.Capture(null);
-            InvalidateVisual();
+            // Handle rotation gesture
+            if (IsRotationGestureEnabled)
+            {
+                // Check if this is a rotation gesture
+                if (!_isRotating)
+                {
+                    _isRotating = IsRotationGesture(
+                        _rotationCenter,
+                        pointers[0].StartPosition, pointers[0].Position,
+                        pointers[1].StartPosition, pointers[1].Position
+                    );
+                    
+                    if (_isRotating)
+                    {
+                        TriggerHapticFeedback(HapticFeedbackType.RotationStart);
+                    }
+                }
+                
+                if (_isRotating)
+                {
+                    var currentAngle = CalculateAngleBetweenVectors(
+                        currentCenter, pointers[0].Position, pointers[1].Position);
+                    
+                    var angleDelta = currentAngle - _initialRotationAngle;
+                    
+                    // Convert to degrees and apply to disk rotation
+                    var rotationDelta = angleDelta * 180.0 / Math.PI;
+                    var newDiskRotation = (_initialDiskRotation + rotationDelta) % 360.0;
+                    if (newDiskRotation < 0) newDiskRotation += 360.0;
+                    
+                    if (Math.Abs(newDiskRotation - DiskRotation) > 1.0) // Threshold to avoid jitter
+                    {
+                        DiskRotation = newDiskRotation;
+                        RotationGesture?.Invoke(this, new RotationGestureEventArgs(rotationDelta, newDiskRotation));
+                        
+                        // Trigger haptic feedback for rotation
+                        var rotationIntensity = Math.Abs(rotationDelta) / 45.0; // Normalize to 45 degrees
+                        TriggerHapticFeedback(HapticFeedbackType.Rotation, Math.Min(1.0, rotationIntensity));
+                        
+                        InvalidateVisual();
+                    }
+                }
+            }
         }
+    }
+
+    private void HandleMultiTouchReleased(PointerReleasedEventArgs e)
+    {
+        if (_activePointers.Count < 2)
+        {
+            // End gestures when less than 2 pointers
+            if (_isPinching)
+            {
+                _isPinching = false;
+                TriggerHapticFeedback(HapticFeedbackType.GestureEnd);
+            }
+            
+            if (_isRotating)
+            {
+                _isRotating = false;
+                TriggerHapticFeedback(HapticFeedbackType.GestureEnd);
+            }
+        }
+    }
+
+    #endregion
+
+    #region Multi-Marker Manipulation
+
+    private void StartMultiMarkerDrag()
+    {
+        if (SelectedMarkers == null || SelectedMarkers.Count == 0) return;
+        
+        _isMultiDragging = true;
+        _multiDragStartPositions.Clear();
+        
+        // Store initial positions for relative movement
+        foreach (var marker in SelectedMarkers)
+        {
+            var markerPosition = CalculatePosition(marker.Angle + DiskRotation, _radius * 0.85);
+            _multiDragStartPositions[marker] = markerPosition;
+        }
+    }
+
+    private void HandleMultiMarkerDrag(Point currentPosition)
+    {
+        if (SelectedMarkers == null || SelectedMarkers.Count == 0) return;
+        
+        var deltaX = currentPosition.X - _lastPointerPosition.X;
+        var deltaY = currentPosition.Y - _lastPointerPosition.Y;
+        
+        var movedMarkers = new List<MarkerMovedInfo>();
+        
+        foreach (var marker in SelectedMarkers.ToList()) // ToList to avoid modification during iteration
+        {
+            var oldAngle = marker.Angle;
+            
+            // Calculate new position based on relative movement
+            if (_multiDragStartPositions.TryGetValue(marker, out var startPosition))
+            {
+                var newPosition = new Point(
+                    startPosition.X + (currentPosition.X - _lastPointerPosition.X),
+                    startPosition.Y + (currentPosition.Y - _lastPointerPosition.Y)
+                );
+                
+                // Enhanced removal detection with visual feedback
+                var isOutsideDisk = !IsPointInDisk(newPosition);
+                var isNearEdge = IsPointNearDiskEdge(newPosition, out var distanceFromEdge);
+                
+                if (isOutsideDisk)
+                {
+                    // Start removal animation if not already started
+                    if (!_removalAnimations.ContainsKey(marker))
+                    {
+                        StartRemovalAnimation(marker, newPosition);
+                        
+                        // Trigger haptic feedback for boundary hit
+                        TriggerHapticFeedback(HapticFeedbackType.BoundaryHit);
+                    }
+                    else
+                    {
+                        // Update animation target position
+                        _removalAnimations[marker].TargetPosition = newPosition;
+                    }
+                    continue;
+                }
+                else
+                {
+                    // Cancel removal animation if marker is dragged back into disk
+                    if (_removalAnimations.ContainsKey(marker))
+                    {
+                        CancelRemovalAnimation(marker);
+                    }
+                }
+                
+                // Calculate new angle
+                var newAngle = CalculateAngle(newPosition);
+                
+                // Apply quantization if enabled
+                if (IsQuantizationEnabled && GridLines != null)
+                {
+                    newAngle = SnapToNearestGridLine(newAngle);
+                }
+                
+                marker.Angle = newAngle;
+                movedMarkers.Add(new MarkerMovedInfo(marker, oldAngle, newAngle));
+            }
+        }
+        
+        if (movedMarkers.Count > 0)
+        {
+            MultiMarkerMoved?.Invoke(this, new MultiMarkerMovedEventArgs(movedMarkers));
+        }
+        
+        _lastPointerPosition = currentPosition;
+        InvalidateVisual();
+    }
+
+    private void CompleteMultiMarkerDrag(Point finalPosition)
+    {
+        if (SelectedMarkers == null || SelectedMarkers.Count == 0)
+        {
+            _isMultiDragging = false;
+            return;
+        }
+        
+        var markersToRemove = new List<Marker>();
+        
+        // Check for markers that should be removed (dragged outside disk)
+        foreach (var marker in SelectedMarkers.ToList())
+        {
+            if (_multiDragStartPositions.TryGetValue(marker, out var startPosition))
+            {
+                var finalMarkerPosition = new Point(
+                    startPosition.X + (finalPosition.X - _lastPointerPosition.X),
+                    startPosition.Y + (finalPosition.Y - _lastPointerPosition.Y)
+                );
+                
+                if (!IsPointInDisk(finalMarkerPosition))
+                {
+                    markersToRemove.Add(marker);
+                }
+                else
+                {
+                    // Final quantization snap if enabled
+                    if (IsQuantizationEnabled && GridLines != null)
+                    {
+                        var snappedAngle = SnapToNearestGridLine(marker.Angle);
+                        if (Math.Abs(snappedAngle - marker.Angle) > 0.1)
+                        {
+                            marker.Angle = snappedAngle;
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Remove markers that were dragged outside
+        foreach (var marker in markersToRemove)
+        {
+            RemoveFromSelection(marker);
+            MarkerRemoved?.Invoke(this, new MarkerRemovedEventArgs(marker));
+            
+            // Trigger haptic feedback for marker removal
+            TriggerHapticFeedback(HapticFeedbackType.MarkerRemove);
+        }
+        
+        // Reset drag state
+        _isMultiDragging = false;
+        _multiDragStartPositions.Clear();
+        Cursor = new Cursor(StandardCursorType.Arrow);
+        InvalidateVisual();
+    }
+
+    #endregion
+
+    #region Legacy Single Marker Support
+
+    private void HandleSingleMarkerDrag(Point currentPosition, KeyModifiers keyModifiers)
+    {
+        if (_draggedMarker == null) return;
+        
+        // Enhanced drag behavior with visual feedback
+        var isOutsideDisk = !IsPointInDisk(currentPosition);
+        var isNearEdge = IsPointNearDiskEdge(currentPosition, out var distanceFromEdge);
+        
+        if (isOutsideDisk)
+        {
+            // Start removal animation if not already started
+            if (!_removalAnimations.ContainsKey(_draggedMarker))
+            {
+                StartRemovalAnimation(_draggedMarker, currentPosition);
+                
+                // Trigger haptic feedback for boundary hit
+                TriggerHapticFeedback(HapticFeedbackType.BoundaryHit);
+            }
+            else
+            {
+                // Update animation target position
+                _removalAnimations[_draggedMarker].TargetPosition = currentPosition;
+            }
+            InvalidateVisual();
+            return;
+        }
+        else
+        {
+            // Cancel removal animation if marker is dragged back into disk
+            if (_removalAnimations.ContainsKey(_draggedMarker))
+            {
+                CancelRemovalAnimation(_draggedMarker);
+            }
+        }
+        
+        // Update marker angle based on new position
+        var newAngle = CalculateAngle(currentPosition);
+        var oldAngle = _draggedMarker.Angle;
+        
+        // Enhanced velocity adjustment with keyboard modifier support
+        var verticalDelta = currentPosition.Y - _lastPointerPosition.Y;
+        var horizontalDelta = currentPosition.X - _lastPointerPosition.X;
+        
+        var isShiftPressed = keyModifiers.HasFlag(KeyModifiers.Shift);
+        var isCtrlPressed = keyModifiers.HasFlag(KeyModifiers.Control);
+        
+        var newVelocity = _draggedMarker.Velocity;
+        
+        // Velocity adjustment mode (Shift key or vertical movement)
+        if (isShiftPressed || Math.Abs(verticalDelta) > Math.Abs(horizontalDelta))
+        {
+            var velocityChange = (int)(-verticalDelta * 0.8);
+            newVelocity = Math.Max(1, Math.Min(127, _draggedMarker.Velocity + velocityChange));
+            
+            if (!isCtrlPressed)
+            {
+                _draggedMarker.Velocity = newVelocity;
+                InvalidateVisual();
+                return;
+            }
+        }
+        else
+        {
+            var radialDistance = CalculateDistance(currentPosition);
+            var previousRadialDistance = CalculateDistance(_lastPointerPosition);
+            var radialDelta = radialDistance - previousRadialDistance;
+            
+            var velocityChange = (int)(radialDelta * 0.1);
+            newVelocity = Math.Max(1, Math.Min(127, _draggedMarker.Velocity + velocityChange));
+        }
+        
+        // Apply quantization if enabled
+        if (IsQuantizationEnabled && GridLines != null)
+        {
+            newAngle = SnapToNearestGridLine(newAngle);
+        }
+        
+        _draggedMarker.Angle = newAngle;
+        _draggedMarker.Velocity = newVelocity;
+        
+        MarkerMoved?.Invoke(this, new MarkerMovedEventArgs(_draggedMarker, oldAngle, newAngle));
+        
+        _lastPointerPosition = currentPosition;
+        InvalidateVisual();
+    }
+
+    private void CompleteSingleMarkerDrag(Point finalPosition)
+    {
+        if (_draggedMarker == null) return;
+        
+        if (!IsPointInDisk(finalPosition))
+        {
+            MarkerRemoved?.Invoke(this, new MarkerRemovedEventArgs(_draggedMarker));
+            
+            // Trigger haptic feedback for marker removal
+            TriggerHapticFeedback(HapticFeedbackType.MarkerRemove);
+        }
+        else
+        {
+            if (IsQuantizationEnabled && GridLines != null)
+            {
+                var snappedAngle = SnapToNearestGridLine(_draggedMarker.Angle);
+                if (Math.Abs(snappedAngle - _draggedMarker.Angle) > 0.1)
+                {
+                    var oldAngle = _draggedMarker.Angle;
+                    _draggedMarker.Angle = snappedAngle;
+                    MarkerMoved?.Invoke(this, new MarkerMovedEventArgs(_draggedMarker, oldAngle, snappedAngle));
+                }
+            }
+        }
+        
+        _isDragging = false;
+        _draggedMarker = null;
+        Cursor = new Cursor(StandardCursorType.Arrow);
+        InvalidateVisual();
+    }
+
+    private void CreateNewMarker(Point position)
+    {
+        var angle = CalculateAngle(position);
+        
+        // Apply quantization to new marker placement if enabled
+        if (IsQuantizationEnabled && GridLines != null)
+        {
+            angle = SnapToNearestGridLine(angle);
+        }
+        
+        // Create new marker with color based on angle (chromatic mapping)
+        var semitone = (int)(angle / 30) % 12;
+        var midiNote = 60 + semitone;
+        var color = Marker.GetColorFromMidiNote(midiNote);
+        var newMarker = new Marker(angle, System.Drawing.Color.FromArgb(color.R, color.G, color.B));
+        
+        // Set default velocity based on distance from center
+        var distanceFromCenter = CalculateDistance(position);
+        var normalizedDistance = Math.Min(1.0, distanceFromCenter / _radius);
+        var velocity = (int)(127 * (1.0 - normalizedDistance * 0.3));
+        newMarker.Velocity = Math.Max(70, velocity);
+        
+        MarkerPlaced?.Invoke(this, new MarkerPlacedEventArgs(newMarker, position));
+        
+        // Trigger haptic feedback for marker placement
+        TriggerHapticFeedback(HapticFeedbackType.MarkerPlace);
     }
 
     #endregion
@@ -467,11 +1483,16 @@ public class CircularCanvas : Control
         
         UpdateDimensions();
         
-        // Apply disk rotation transform around center
-        var rotationTransform = Matrix.CreateRotation(DiskRotation * Math.PI / 180.0);
+        // Apply zoom transform around center
+        var zoomTransform = Matrix.CreateScale(ZoomLevel, ZoomLevel);
         var centerTransform = Matrix.CreateTranslation(_center.X, _center.Y);
         var negCenterTransform = Matrix.CreateTranslation(-_center.X, -_center.Y);
-        var combinedTransform = negCenterTransform * rotationTransform * centerTransform;
+        
+        // Apply disk rotation transform around center
+        var rotationTransform = Matrix.CreateRotation(DiskRotation * Math.PI / 180.0);
+        
+        // Combine transforms: translate to origin, scale, rotate, translate back
+        var combinedTransform = negCenterTransform * zoomTransform * rotationTransform * centerTransform;
         
         using (context.PushTransform(combinedTransform))
         {
@@ -488,8 +1509,31 @@ public class CircularCanvas : Control
             DrawMarkers(context);
         }
         
-        // Draw playhead (not rotated with disk)
-        DrawPlayhead(context);
+        // Draw markers being removed (with animation, outside the main transform)
+        DrawRemovalAnimations(context);
+        
+        // Draw playhead (not rotated with disk, but affected by zoom)
+        var zoomTransformForPlayhead = Matrix.CreateScale(ZoomLevel, ZoomLevel);
+        var playheadCenterTransform = Matrix.CreateTranslation(_center.X, _center.Y);
+        var playheadNegCenterTransform = Matrix.CreateTranslation(-_center.X, -_center.Y);
+        var playheadCombinedTransform = playheadNegCenterTransform * zoomTransformForPlayhead * playheadCenterTransform;
+        
+        using (context.PushTransform(playheadCombinedTransform))
+        {
+            DrawPlayhead(context);
+        }
+        
+        // Draw selection rectangle (not affected by transforms)
+        if (_isSelectionMode)
+        {
+            DrawSelectionRectangle(context);
+        }
+        
+        // Draw multi-selection indicators
+        if (SelectedMarkers?.Count > 1)
+        {
+            DrawMultiSelectionIndicators(context);
+        }
     }
 
     private void DrawDisk(DrawingContext context)
@@ -527,14 +1571,29 @@ public class CircularCanvas : Control
         
         foreach (var marker in Markers)
         {
-            DrawMarker(context, marker);
+            // Skip markers that are being animated for removal
+            if (!_removalAnimations.ContainsKey(marker))
+            {
+                DrawMarker(context, marker);
+            }
+        }
+    }
+
+    private void DrawRemovalAnimations(DrawingContext context)
+    {
+        foreach (var kvp in _removalAnimations)
+        {
+            var marker = kvp.Key;
+            var animation = kvp.Value;
+            
+            DrawMarkerWithAnimation(context, marker, animation);
         }
     }
 
     private void DrawMarker(DrawingContext context, Marker marker)
     {
         var position = CalculatePosition(marker.Angle, _radius * 0.85);
-        var baseRadius = 8;
+        var baseRadius = 8 * ZoomLevel; // Apply zoom to marker size
         var markerRadius = baseRadius;
         
         // Convert System.Drawing.Color to Avalonia Color
@@ -544,31 +1603,45 @@ public class CircularCanvas : Control
         if (marker.IsActive)
         {
             // Active marker: larger size with pulsing glow effect
-            markerRadius = 14;
+            markerRadius = 14 * ZoomLevel;
             
             // Draw outer glow for active markers
-            var glowRadius = markerRadius + 6;
+            var glowRadius = markerRadius + (6 * ZoomLevel);
             var glowBrush = new SolidColorBrush(avaloniaColor, 0.3);
             context.DrawEllipse(glowBrush, null, position, glowRadius, glowRadius);
             
             // Draw middle glow
-            var midGlowRadius = markerRadius + 3;
+            var midGlowRadius = markerRadius + (3 * ZoomLevel);
             var midGlowBrush = new SolidColorBrush(avaloniaColor, 0.6);
             context.DrawEllipse(midGlowBrush, null, position, midGlowRadius, midGlowRadius);
         }
         
-        // Selection ring
-        if (marker == SelectedMarker)
+        // Multi-selection ring (takes precedence over single selection)
+        var isMultiSelected = IsMarkerSelected(marker);
+        if (isMultiSelected && SelectedMarkers?.Count > 1)
         {
-            var selectionRadius = markerRadius + 4;
-            var selectionPen = new Pen(new SolidColorBrush(Color.FromRgb(255, 255, 100)), 2);
+            var selectionRadius = markerRadius + (4 * ZoomLevel);
+            var multiSelectionPen = new Pen(new SolidColorBrush(Color.FromRgb(100, 255, 100)), 2 * ZoomLevel);
+            
+            // Multi-selection ring with different color
+            context.DrawEllipse(null, multiSelectionPen, position, selectionRadius, selectionRadius);
+            
+            // Inner selection highlight
+            var innerSelectionPen = new Pen(new SolidColorBrush(Color.FromRgb(200, 255, 200)), 1 * ZoomLevel);
+            context.DrawEllipse(null, innerSelectionPen, position, markerRadius + (1 * ZoomLevel), markerRadius + (1 * ZoomLevel));
+        }
+        // Single selection ring
+        else if (marker == SelectedMarker || (isMultiSelected && SelectedMarkers?.Count == 1))
+        {
+            var selectionRadius = markerRadius + (4 * ZoomLevel);
+            var selectionPen = new Pen(new SolidColorBrush(Color.FromRgb(255, 255, 100)), 2 * ZoomLevel);
             
             // Animated selection ring (could be enhanced with actual animation)
             context.DrawEllipse(null, selectionPen, position, selectionRadius, selectionRadius);
             
             // Inner selection highlight
-            var innerSelectionPen = new Pen(new SolidColorBrush(Color.FromRgb(255, 255, 255)), 1);
-            context.DrawEllipse(null, innerSelectionPen, position, markerRadius + 1, markerRadius + 1);
+            var innerSelectionPen = new Pen(new SolidColorBrush(Color.FromRgb(255, 255, 255)), 1 * ZoomLevel);
+            context.DrawEllipse(null, innerSelectionPen, position, markerRadius + (1 * ZoomLevel), markerRadius + (1 * ZoomLevel));
         }
         
         // Main marker body with velocity-based visual feedback
@@ -813,6 +1886,193 @@ public class CircularCanvas : Control
         // Draw main text
         context.DrawText(formattedText, labelPosition);
     }
+    
+    private void DrawSelectionRectangle(DrawingContext context)
+    {
+        if (_selectionRect.Width <= 0 || _selectionRect.Height <= 0) return;
+        
+        // Draw selection rectangle
+        var selectionBrush = new SolidColorBrush(Color.FromArgb(50, 100, 150, 255));
+        var selectionPen = new Pen(new SolidColorBrush(Color.FromRgb(100, 150, 255)), 1);
+        
+        context.DrawRectangle(selectionBrush, selectionPen, _selectionRect);
+        
+        // Draw corner handles
+        var handleSize = 6;
+        var handleBrush = new SolidColorBrush(Color.FromRgb(255, 255, 255));
+        var handlePen = new Pen(new SolidColorBrush(Color.FromRgb(100, 150, 255)), 1);
+        
+        var corners = new[]
+        {
+            new Point(_selectionRect.Left, _selectionRect.Top),
+            new Point(_selectionRect.Right, _selectionRect.Top),
+            new Point(_selectionRect.Left, _selectionRect.Bottom),
+            new Point(_selectionRect.Right, _selectionRect.Bottom)
+        };
+        
+        foreach (var corner in corners)
+        {
+            var handleRect = new Rect(
+                corner.X - handleSize / 2,
+                corner.Y - handleSize / 2,
+                handleSize,
+                handleSize
+            );
+            context.DrawRectangle(handleBrush, handlePen, handleRect);
+        }
+    }
+    
+    private void DrawMultiSelectionIndicators(DrawingContext context)
+    {
+        if (SelectedMarkers == null || SelectedMarkers.Count <= 1) return;
+        
+        // Draw connection lines between selected markers
+        var connectionPen = new Pen(new SolidColorBrush(Color.FromArgb(100, 100, 255, 100)), 1);
+        
+        var positions = SelectedMarkers
+            .Select(m => CalculatePosition(m.Angle + DiskRotation, _radius * 0.85))
+            .ToArray();
+        
+        // Draw lines connecting all selected markers
+        for (int i = 0; i < positions.Length - 1; i++)
+        {
+            for (int j = i + 1; j < positions.Length; j++)
+            {
+                context.DrawLine(connectionPen, positions[i], positions[j]);
+            }
+        }
+        
+        // Draw selection count indicator
+        if (positions.Length > 0)
+        {
+            var centerPoint = new Point(
+                positions.Average(p => p.X),
+                positions.Average(p => p.Y)
+            );
+            
+            var countText = SelectedMarkers.Count.ToString();
+            var textBrush = new SolidColorBrush(Color.FromRgb(255, 255, 255));
+            var typeface = new Typeface("Arial", FontStyle.Normal, FontWeight.Bold);
+            var formattedText = new FormattedText(
+                countText,
+                System.Globalization.CultureInfo.CurrentCulture,
+                FlowDirection.LeftToRight,
+                typeface,
+                12,
+                textBrush
+            );
+            
+            // Draw background circle for count
+            var backgroundRadius = Math.Max(formattedText.Width, formattedText.Height) / 2 + 4;
+            var backgroundBrush = new SolidColorBrush(Color.FromArgb(200, 100, 150, 255));
+            context.DrawEllipse(backgroundBrush, null, centerPoint, backgroundRadius, backgroundRadius);
+            
+            // Draw count text
+            var textPosition = new Point(
+                centerPoint.X - formattedText.Width / 2,
+                centerPoint.Y - formattedText.Height / 2
+            );
+            context.DrawText(formattedText, textPosition);
+        }
+    }
+
+    private void DrawMarkerWithAnimation(DrawingContext context, Marker marker, RemovalAnimationInfo animation)
+    {
+        var position = animation.CurrentPosition;
+        var baseRadius = 8 * ZoomLevel * animation.Scale;
+        var markerRadius = baseRadius;
+        
+        // Convert System.Drawing.Color to Avalonia Color with animation opacity
+        var avaloniaColor = Color.FromArgb(
+            (byte)(marker.Color.A * animation.Opacity),
+            marker.Color.R, 
+            marker.Color.G, 
+            marker.Color.B
+        );
+        
+        // Enhanced visual feedback for removal
+        if (animation.IsOutsideDisk)
+        {
+            // Add red tint to indicate removal
+            var removalIntensity = GetRemovalFeedbackIntensity(position);
+            var redTint = (byte)(255 * removalIntensity * animation.Opacity);
+            avaloniaColor = Color.FromArgb(
+                (byte)(marker.Color.A * animation.Opacity),
+                (byte)Math.Min(255, marker.Color.R + redTint),
+                (byte)Math.Max(0, marker.Color.G - redTint / 2),
+                (byte)Math.Max(0, marker.Color.B - redTint / 2)
+            );
+            
+            // Draw removal warning ring
+            var warningRadius = markerRadius + (10 * animation.Scale);
+            var warningBrush = new SolidColorBrush(Color.FromArgb(
+                (byte)(100 * animation.Opacity),
+                255, 100, 100
+            ));
+            context.DrawEllipse(warningBrush, null, position, warningRadius, warningRadius);
+        }
+        
+        // Main marker body with animation effects
+        var markerBrush = new SolidColorBrush(avaloniaColor);
+        var borderBrush = new SolidColorBrush(Color.FromArgb(
+            (byte)(200 * animation.Opacity),
+            255, 255, 255
+        ));
+        var markerPen = new Pen(borderBrush, 1 * animation.Scale);
+        
+        context.DrawEllipse(markerBrush, markerPen, position, markerRadius, markerRadius);
+        
+        // Draw removal direction arrow
+        if (animation.IsOutsideDisk && animation.Opacity > 0.3)
+        {
+            DrawRemovalArrow(context, position, animation);
+        }
+    }
+
+    private void DrawRemovalArrow(DrawingContext context, Point markerPosition, RemovalAnimationInfo animation)
+    {
+        var direction = new Point(
+            animation.TargetPosition.X - markerPosition.X,
+            animation.TargetPosition.Y - markerPosition.Y
+        );
+        var length = Math.Sqrt(direction.X * direction.X + direction.Y * direction.Y);
+        
+        if (length > 0)
+        {
+            direction = new Point(direction.X / length, direction.Y / length);
+            
+            var arrowLength = 20 * animation.Scale;
+            var arrowEnd = new Point(
+                markerPosition.X + direction.X * arrowLength,
+                markerPosition.Y + direction.Y * arrowLength
+            );
+            
+            // Arrow line
+            var arrowPen = new Pen(new SolidColorBrush(Color.FromArgb(
+                (byte)(150 * animation.Opacity),
+                255, 100, 100
+            )), 2 * animation.Scale);
+            
+            context.DrawLine(arrowPen, markerPosition, arrowEnd);
+            
+            // Arrow head
+            var arrowHeadSize = 6 * animation.Scale;
+            var perpendicular = new Point(-direction.Y, direction.X);
+            
+            var arrowHead1 = new Point(
+                arrowEnd.X - direction.X * arrowHeadSize + perpendicular.X * arrowHeadSize / 2,
+                arrowEnd.Y - direction.Y * arrowHeadSize + perpendicular.Y * arrowHeadSize / 2
+            );
+            
+            var arrowHead2 = new Point(
+                arrowEnd.X - direction.X * arrowHeadSize - perpendicular.X * arrowHeadSize / 2,
+                arrowEnd.Y - direction.Y * arrowHeadSize - perpendicular.Y * arrowHeadSize / 2
+            );
+            
+            context.DrawLine(arrowPen, arrowEnd, arrowHead1);
+            context.DrawLine(arrowPen, arrowEnd, arrowHead2);
+        }
+    }
 
     #endregion
 }
@@ -863,6 +2123,102 @@ public class MarkerRemovedEventArgs : EventArgs
     {
         Marker = marker;
     }
+}
+
+public class MultiMarkerSelectedEventArgs : EventArgs
+{
+    public IReadOnlyList<Marker> Markers { get; }
+    
+    public MultiMarkerSelectedEventArgs(IReadOnlyList<Marker> markers)
+    {
+        Markers = markers;
+    }
+}
+
+public class MultiMarkerMovedEventArgs : EventArgs
+{
+    public IReadOnlyList<MarkerMovedInfo> MovedMarkers { get; }
+    
+    public MultiMarkerMovedEventArgs(IReadOnlyList<MarkerMovedInfo> movedMarkers)
+    {
+        MovedMarkers = movedMarkers;
+    }
+}
+
+public class MarkerMovedInfo
+{
+    public Marker Marker { get; }
+    public double OldAngle { get; }
+    public double NewAngle { get; }
+    
+    public MarkerMovedInfo(Marker marker, double oldAngle, double newAngle)
+    {
+        Marker = marker;
+        OldAngle = oldAngle;
+        NewAngle = newAngle;
+    }
+}
+
+public class ZoomChangedEventArgs : EventArgs
+{
+    public double ZoomLevel { get; }
+    public Point ZoomCenter { get; }
+    
+    public ZoomChangedEventArgs(double zoomLevel, Point zoomCenter)
+    {
+        ZoomLevel = zoomLevel;
+        ZoomCenter = zoomCenter;
+    }
+}
+
+public class MarkerRemovalPreviewEventArgs : EventArgs
+{
+    public Marker Marker { get; }
+    public bool IsBeingRemoved { get; }
+    
+    public MarkerRemovalPreviewEventArgs(Marker marker, bool isBeingRemoved)
+    {
+        Marker = marker;
+        IsBeingRemoved = isBeingRemoved;
+    }
+}
+
+public class RotationGestureEventArgs : EventArgs
+{
+    public double RotationDelta { get; }
+    public double NewRotation { get; }
+    
+    public RotationGestureEventArgs(double rotationDelta, double newRotation)
+    {
+        RotationDelta = rotationDelta;
+        NewRotation = newRotation;
+    }
+}
+
+public class HapticFeedbackEventArgs : EventArgs
+{
+    public HapticFeedbackType FeedbackType { get; }
+    public double Intensity { get; }
+    
+    public HapticFeedbackEventArgs(HapticFeedbackType feedbackType, double intensity = 1.0)
+    {
+        FeedbackType = feedbackType;
+        Intensity = Math.Max(0.0, Math.Min(1.0, intensity));
+    }
+}
+
+public enum HapticFeedbackType
+{
+    MarkerPlace,
+    MarkerSelect,
+    MarkerRemove,
+    GestureStart,
+    GestureEnd,
+    ZoomChange,
+    Rotation,
+    RotationStart,
+    GridSnap,
+    BoundaryHit
 }
 
 #endregion
