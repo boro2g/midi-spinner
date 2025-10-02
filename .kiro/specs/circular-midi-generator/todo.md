@@ -15,3 +15,7 @@ ability to configure which root note each lane pushes out
   1. Removing `+ DiskRotation` from `CalculateMarkerPosition` (graphics transform handles rotation)
   2. Implementing proper inverse transform in `CalculateAngleAccountingForRotation` to convert click position back to unrotated coordinate space
   3. Verified working for all scenarios: stationary disk, spinning disk, and stopped-after-rotation disk
+
+- ✅ **Right-click functionality**: RESTORED - Right-click drag on markers to adjust velocity (vertical) and note length (horizontal)
+
+- ✅ **Double-click to remove**: ADDED - Double-click any marker to remove it (500ms threshold)

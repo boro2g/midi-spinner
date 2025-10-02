@@ -302,6 +302,11 @@ public class CircularCanvas : Control
     private int _initialVelocity;
     private double _initialNoteLength;
 
+    // Double-click support for marker removal
+    private DateTime _lastClickTime = DateTime.MinValue;
+    private Marker? _lastClickedMarker;
+    private readonly TimeSpan _doubleClickThreshold = TimeSpan.FromMilliseconds(500);
+
     // Visual styling
     private readonly IBrush _diskBrush = new SolidColorBrush(Color.FromRgb(45, 45, 55));
     private readonly IPen _diskPen = new Pen(new SolidColorBrush(Color.FromRgb(80, 80, 90)), 2);
@@ -917,6 +922,13 @@ public class CircularCanvas : Control
                 return;
             }
             
+            // Handle double-click for marker removal
+            if (IsDoubleClick(clickedMarker))
+            {
+                RemoveMarker(clickedMarker);
+                return;
+            }
+            
             // Handle multi-selection with Ctrl key
             if (isCtrlPressed)
             {
@@ -1184,6 +1196,40 @@ public class CircularCanvas : Control
 
         // Trigger haptic feedback for completion
         TriggerHapticFeedback(HapticFeedbackType.MarkerPlace);
+    }
+
+    #endregion
+
+    #region Double-Click Handling
+
+    private bool IsDoubleClick(Marker marker)
+    {
+        var now = DateTime.Now;
+        var timeSinceLastClick = now - _lastClickTime;
+        
+        var isDoubleClick = timeSinceLastClick <= _doubleClickThreshold && 
+                           _lastClickedMarker == marker;
+        
+        // Update tracking for next click
+        _lastClickTime = now;
+        _lastClickedMarker = marker;
+        
+        return isDoubleClick;
+    }
+
+    private void RemoveMarker(Marker marker)
+    {
+        // Remove from selection if selected
+        RemoveFromSelection(marker);
+        
+        // Trigger removal event
+        MarkerRemoved?.Invoke(this, new MarkerRemovedEventArgs(marker));
+        
+        // Trigger haptic feedback
+        TriggerHapticFeedback(HapticFeedbackType.MarkerRemove);
+        
+        // Visual feedback
+        InvalidateVisual();
     }
 
     #endregion
