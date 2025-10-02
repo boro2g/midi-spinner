@@ -9,3 +9,9 @@ size of marker is note length
 play buttons
 
 ability to configure which root note each lane pushes out
+## Recent Fixes
+
+- ✅ **Marker placement during rotation**: FIXED - Markers now appear exactly where clicked, even when disk is rotating. The problem was coordinate space confusion between click coordinates and rendered coordinates. Fixed by:
+  1. Removing `+ DiskRotation` from `CalculateMarkerPosition` (graphics transform handles rotation)
+  2. Implementing proper inverse transform in `CalculateAngleAccountingForRotation` to convert click position back to unrotated coordinate space
+  3. Verified working for all scenarios: stationary disk, spinning disk, and stopped-after-rotation disk

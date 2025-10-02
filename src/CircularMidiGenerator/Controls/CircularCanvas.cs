@@ -737,6 +737,41 @@ public class CircularCanvas : Control
     }
 
     /// <summary>
+    /// Calculates what angle to store for a marker so it appears at the clicked position
+    /// when rendered with the current disk rotation
+    /// </summary>
+    private double CalculateAngleAccountingForRotation(Point point)
+    {
+        // Goal: Find the angle θ such that when the marker is rendered with rotation R,
+        // it appears at the clicked position P.
+        //
+        // During rendering: visual_position = rotate(marker_position(θ), R)
+        // We want: visual_position = P
+        // So: P = rotate(marker_position(θ), R)
+        // Therefore: marker_position(θ) = rotate_inverse(P, R)
+        // And: θ = angle_of(rotate_inverse(P, R))
+        
+        // Step 1: Apply inverse rotation to the click point
+        var rotationRadians = -DiskRotation * Math.PI / 180.0; // Negative for inverse
+        
+        // Translate to origin
+        var translatedX = point.X - _center.X;
+        var translatedY = point.Y - _center.Y;
+        
+        // Apply inverse rotation
+        var cos = Math.Cos(rotationRadians);
+        var sin = Math.Sin(rotationRadians);
+        var rotatedX = translatedX * cos - translatedY * sin;
+        var rotatedY = translatedX * sin + translatedY * cos;
+        
+        // Translate back
+        var unrotatedPoint = new Point(rotatedX + _center.X, rotatedY + _center.Y);
+        
+        // Step 2: Calculate angle of the unrotated point
+        return CalculateAngle(unrotatedPoint);
+    }
+
+    /// <summary>
     /// Calculates the position on the circle for a given angle
     /// </summary>
     private Point CalculatePosition(double angle, double radius)
@@ -768,7 +803,7 @@ public class CircularCanvas : Control
     private Point CalculateMarkerPosition(Marker marker)
     {
         var laneRadius = GetLaneRadius(marker.Lane);
-        return CalculatePosition(marker.Angle + DiskRotation, laneRadius);
+        return CalculatePosition(marker.Angle, laneRadius);
     }
 
     /// <summary>
@@ -835,6 +870,8 @@ public class CircularCanvas : Control
         
         return angle;
     }
+
+
 
     #endregion
 
@@ -1349,8 +1386,8 @@ public class CircularCanvas : Control
                     }
                 }
                 
-                // Calculate new angle
-                var newAngle = CalculateAngle(newPosition);
+                // Calculate new angle accounting for rotation
+                var newAngle = CalculateAngleAccountingForRotation(newPosition);
                 
                 // Apply quantization if enabled
                 if (IsQuantizationEnabled && GridLines != null)
@@ -1467,8 +1504,8 @@ public class CircularCanvas : Control
             }
         }
         
-        // Update marker angle based on new position
-        var newAngle = CalculateAngle(currentPosition);
+        // Update marker angle based on new position, accounting for rotation
+        var newAngle = CalculateAngleAccountingForRotation(currentPosition);
         var oldAngle = _draggedMarker.Angle;
         
         // Enhanced velocity adjustment with keyboard modifier support
@@ -1551,10 +1588,8 @@ public class CircularCanvas : Control
 
     private void CreateNewMarker(Point position)
     {
-        var angle = CalculateAngle(position);
-        
-        // For now, store the raw angle without any rotation compensation
-        // We'll fix the rotation issue after basic placement works
+        // Use the rotation-aware angle calculation
+        var angle = CalculateAngleAccountingForRotation(position);
         
         // Apply quantization to new marker placement if enabled
         if (IsQuantizationEnabled && GridLines != null)
