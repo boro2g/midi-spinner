@@ -2368,44 +2368,10 @@ public class CircularCanvas : Control
         var centerPen = new Pen(new SolidColorBrush(Color.FromRgb(200, 50, 50)), 1);
         context.DrawEllipse(centerBrush, centerPen, _center, centerMarkerRadius, centerMarkerRadius);
         
-        // Optional: Add "12" text indicator
-        DrawPlayheadLabel(context);
+
     }
     
-    private void DrawPlayheadLabel(DrawingContext context)
-    {
-        var labelText = "12";
-        var textBrush = new SolidColorBrush(Color.FromRgb(255, 255, 255));
-        var typeface = new Typeface("Arial", FontStyle.Normal, FontWeight.Bold);
-        var formattedText = new FormattedText(
-            labelText,
-            System.Globalization.CultureInfo.CurrentCulture,
-            FlowDirection.LeftToRight,
-            typeface,
-            14,
-            textBrush
-        );
-        
-        var labelPosition = new Point(
-            _center.X - formattedText.Width / 2,
-            _center.Y - _radius * 1.3
-        );
-        
-        // Draw text shadow
-        var shadowPosition = new Point(labelPosition.X + 1, labelPosition.Y + 1);
-        var shadowText = new FormattedText(
-            labelText,
-            System.Globalization.CultureInfo.CurrentCulture,
-            FlowDirection.LeftToRight,
-            typeface,
-            14,
-            new SolidColorBrush(Color.FromArgb(150, 0, 0, 0))
-        );
-        context.DrawText(shadowText, shadowPosition);
-        
-        // Draw main text
-        context.DrawText(formattedText, labelPosition);
-    }
+
     
     private void DrawSelectionRectangle(DrawingContext context)
     {

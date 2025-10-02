@@ -40,7 +40,14 @@ public partial class App : Application
                 
                 // Now create and set the view model
                 var mainViewModel = ServiceProvider?.GetRequiredService<MainViewModel>();
-                desktop.MainWindow.DataContext = mainViewModel;
+                
+                // Ensure the ViewModel is fully initialized before setting DataContext
+                if (mainViewModel != null)
+                {
+                    // Log the initial BPM value for debugging
+                    _logger?.LogInformation("Setting MainViewModel as DataContext with BPM: {BPM}", mainViewModel.BPM);
+                    desktop.MainWindow.DataContext = mainViewModel;
+                }
 
                 // Handle application shutdown
                 desktop.ShutdownRequested += OnShutdownRequested;

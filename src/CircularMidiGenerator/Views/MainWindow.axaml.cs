@@ -44,6 +44,17 @@ public partial class MainWindow : Window
         {
             _viewModel = DataContext as MainViewModel;
             UpdateCanvasBindings();
+            
+            // Ensure BPM NumericUpDown shows the correct value
+            if (_viewModel != null)
+            {
+                var bpmControl = this.FindControl<Avalonia.Controls.NumericUpDown>("BpmNumericUpDown");
+                if (bpmControl != null)
+                {
+                    // Force the control to update its value using the decimal property
+                    bpmControl.Value = _viewModel.BPMDecimal;
+                }
+            }
         };
     }
 
@@ -86,6 +97,11 @@ public partial class MainWindow : Window
                 else if (e.PropertyName == nameof(MainViewModel.SelectedLaneId))
                 {
                     _circularCanvas.SelectedLaneId = _viewModel.SelectedLaneId;
+                }
+                else if (e.PropertyName == nameof(MainViewModel.Lanes))
+                {
+                    // Update canvas markers when lanes change (e.g., when cleared)
+                    _circularCanvas.Markers = GetAllMarkers();
                 }
             });
         };

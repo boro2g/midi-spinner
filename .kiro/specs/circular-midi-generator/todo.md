@@ -1,5 +1,9 @@
 bpm setting
 
+reset button not working
+
+remove all mute/solo buttons, and extra buttons under instruments
+
 size of marker is note length
 - hold down right click on marker and drag up/down (velocity)
 - show number, marker transparency is velocity
@@ -22,6 +26,6 @@ ability to configure which root note each lane pushes out
 
 - ✅ **Right-click text rotation**: FIXED - Velocity and note length text indicators no longer rotate with the disk. Moved drawing outside the rotation transform so text stays upright. Confirmed working!
 
-- 🔧 **Remove "12" text**: INVESTIGATING - The "12" text at the top is not found in any XAML or C# code. May be from system overlay, debugging tools, or external library. Need to test in release build or check if it's interactive.
+- ✅ **Remove "12" text**: FIXED - Found and removed the "12" text from `DrawPlayheadLabel` method in CircularCanvas. Removed both the method call and the entire method.
 
 - ✅ **Play/Stop button consolidation**: IMPROVED - Replaced separate Play and Stop buttons with a single toggle button that shows "🎵 Play" (green) when stopped and "⏹ Stop" (red) when playing. Also updated the menu to use the same toggle command.

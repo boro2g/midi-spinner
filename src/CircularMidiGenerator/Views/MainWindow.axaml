@@ -70,14 +70,24 @@
                         <!-- BPM Control -->
                         <StackPanel Orientation="Horizontal" Spacing="10">
                             <TextBlock Text="BPM:" VerticalAlignment="Center" Foreground="White" FontWeight="Bold"/>
-                            <NumericUpDown Value="{Binding BPM, Mode=TwoWay}" 
+                            <NumericUpDown Value="{Binding BPMDecimal, Mode=TwoWay}" 
                                            Minimum="60" 
                                            Maximum="200" 
-                                           Width="80"
+                                           Width="120"
+                                           Height="35"
                                            Increment="1"
                                            FormatString="F0"
                                            Background="#44318D"
-                                           Foreground="White"/>
+                                           Foreground="White"
+                                           FontSize="14"
+                                           FontWeight="Bold"
+                                           HorizontalContentAlignment="Center"
+                                           VerticalContentAlignment="Center"
+                                           BorderBrush="#FF6B9D"
+                                           BorderThickness="2"
+                                           CornerRadius="8"
+                                           x:Name="BpmNumericUpDown"/>
+
                         </StackPanel>
 
                         <!-- Quantization -->

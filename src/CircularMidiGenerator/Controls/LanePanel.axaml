@@ -28,11 +28,6 @@
       <GradientStop Color="#FF8E53" Offset="1"/>
     </LinearGradientBrush>
     
-    <LinearGradientBrush x:Key="SoloButtonGradient" StartPoint="0%,0%" EndPoint="100%,100%">
-      <GradientStop Color="#FFD23F" Offset="0"/>
-      <GradientStop Color="#FF8E53" Offset="1"/>
-    </LinearGradientBrush>
-    
     <LinearGradientBrush x:Key="QuantizeButtonGradient" StartPoint="0%,0%" EndPoint="100%,100%">
       <GradientStop Color="#06FFA5" Offset="0"/>
       <GradientStop Color="#4ECDC4" Offset="1"/>
@@ -73,65 +68,7 @@
       <Setter Property="Margin" Value="0,0,12,0"/>
     </Style>
     
-    <!-- Mute Button Style -->
-    <Style Selector="Button.mute-button">
-      <Setter Property="Width" Value="40"/>
-      <Setter Property="Height" Value="30"/>
-      <Setter Property="Background" Value="{StaticResource DarkPanel}"/>
-      <Setter Property="BorderBrush" Value="{StaticResource AccentPink}"/>
-      <Setter Property="BorderThickness" Value="2"/>
-      <Setter Property="CornerRadius" Value="15"/>
-      <Setter Property="Foreground" Value="White"/>
-      <Setter Property="FontSize" Value="12"/>
-      <Setter Property="FontWeight" Value="Bold"/>
-      <Setter Property="Margin" Value="3,0"/>
-      <Setter Property="Cursor" Value="Hand"/>
-      <Setter Property="Transitions">
-        <Transitions>
-          <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.1"/>
-        </Transitions>
-      </Setter>
-    </Style>
-    
-    <Style Selector="Button.mute-button:pointerover">
-      <Setter Property="RenderTransform" Value="scale(1.1)"/>
-    </Style>
-    
-    <Style Selector="Button.mute-button.active">
-      <Setter Property="Background" Value="{StaticResource MuteButtonGradient}"/>
-      <Setter Property="BorderBrush" Value="{StaticResource AccentOrange}"/>
-      <Setter Property="Foreground" Value="White"/>
-    </Style>
-    
-    <!-- Solo Button Style -->
-    <Style Selector="Button.solo-button">
-      <Setter Property="Width" Value="40"/>
-      <Setter Property="Height" Value="30"/>
-      <Setter Property="Background" Value="{StaticResource DarkPanel}"/>
-      <Setter Property="BorderBrush" Value="{StaticResource AccentYellow}"/>
-      <Setter Property="BorderThickness" Value="2"/>
-      <Setter Property="CornerRadius" Value="15"/>
-      <Setter Property="Foreground" Value="White"/>
-      <Setter Property="FontSize" Value="12"/>
-      <Setter Property="FontWeight" Value="Bold"/>
-      <Setter Property="Margin" Value="3,0"/>
-      <Setter Property="Cursor" Value="Hand"/>
-      <Setter Property="Transitions">
-        <Transitions>
-          <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.1"/>
-        </Transitions>
-      </Setter>
-    </Style>
-    
-    <Style Selector="Button.solo-button:pointerover">
-      <Setter Property="RenderTransform" Value="scale(1.1)"/>
-    </Style>
-    
-    <Style Selector="Button.solo-button.active">
-      <Setter Property="Background" Value="{StaticResource SoloButtonGradient}"/>
-      <Setter Property="BorderBrush" Value="{StaticResource AccentOrange}"/>
-      <Setter Property="Foreground" Value="White"/>
-    </Style>
+
     
     <!-- Lane Name Style -->
     <Style Selector="TextBlock.lane-name">
@@ -187,28 +124,7 @@
       <Setter Property="TextAlignment" Value="Center"/>
     </Style>
     
-    <!-- Add Lane Button Style -->
-    <Style Selector="Button.add-lane">
-      <Setter Property="Background" Value="{StaticResource QuantizeButtonGradient}"/>
-      <Setter Property="BorderBrush" Value="{StaticResource AccentGreen}"/>
-      <Setter Property="BorderThickness" Value="2"/>
-      <Setter Property="CornerRadius" Value="20"/>
-      <Setter Property="Foreground" Value="White"/>
-      <Setter Property="FontWeight" Value="Bold"/>
-      <Setter Property="FontSize" Value="14"/>
-      <Setter Property="Padding" Value="20,10"/>
-      <Setter Property="Margin" Value="0,15,0,0"/>
-      <Setter Property="Cursor" Value="Hand"/>
-      <Setter Property="Transitions">
-        <Transitions>
-          <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.2"/>
-        </Transitions>
-      </Setter>
-    </Style>
-    
-    <Style Selector="Button.add-lane:pointerover">
-      <Setter Property="RenderTransform" Value="scale(1.05)"/>
-    </Style>
+
   </UserControl.Styles>
 
   <ScrollViewer>
@@ -224,7 +140,7 @@
                     Name="LaneItemBorder"
                     Tag="{Binding Id}"
                     Cursor="Hand">
-              <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto">
+              <Grid ColumnDefinitions="Auto,*,Auto,Auto">
                 
                 <!-- Theme Color Indicator -->
                 <Border Grid.Column="0" Classes="theme-indicator">
@@ -246,26 +162,8 @@
                             ToolTip.Tip="Toggle Quantization"
                             Content="📐"/>
                 
-                <!-- Mute Button -->
-                <Button Grid.Column="3" 
-                      Classes="mute-button"
-                      Classes.active="{Binding IsMuted}"
-                      Content="🔇"
-                      ToolTip.Tip="Mute Lane"
-                      Name="MuteButton"
-                      Tag="{Binding Id}"/>
-                
-                <!-- Solo Button -->
-                <Button Grid.Column="4" 
-                      Classes="solo-button"
-                      Classes.active="{Binding IsSoloed}"
-                      Content="🎯"
-                      ToolTip.Tip="Solo Lane"
-                      Name="SoloButton"
-                      Tag="{Binding Id}"/>
-                
                 <!-- Settings Button -->
-                <Button Grid.Column="5" 
+                <Button Grid.Column="3" 
                       Width="24" Height="24"
                       Background="Transparent"
                       BorderThickness="0"
@@ -279,20 +177,8 @@
         </ItemsControl.ItemTemplate>
       </ItemsControl>
       
-      <!-- Add Lane Button -->
-      <Button Classes="add-lane" Content="✨ Add Lane" HorizontalAlignment="Stretch"/>
-      
       <!-- Global Controls -->
       <StackPanel Orientation="Vertical" HorizontalAlignment="Stretch" Margin="0,20,0,0" Spacing="10">
-        <Button Content="🔄 Clear All Solo" 
-                Background="{StaticResource SoloButtonGradient}"
-                BorderBrush="{StaticResource AccentOrange}"
-                BorderThickness="2"
-                Foreground="White"
-                Padding="15,8"
-                CornerRadius="20"
-                FontWeight="Bold"
-                Name="ClearAllSoloButton"/>
         <Button Content="🛑 Stop All Notes" 
                 Background="{StaticResource MuteButtonGradient}"
                 BorderBrush="{StaticResource AccentPink}"

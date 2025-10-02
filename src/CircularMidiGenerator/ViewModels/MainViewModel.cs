@@ -98,7 +98,13 @@ public class MainViewModel : ReactiveObject, IDisposable
         // Set up reactive property subscriptions
         SetupReactiveSubscriptions();
         
-        _logger.LogInformation("MainViewModel initialized");
+        // Ensure timing service has the correct initial BPM
+        _timingService?.SetBPM(_bpm);
+        
+        // Ensure UI reflects initial BPM value
+        this.RaisePropertyChanged(nameof(BPM));
+        
+        _logger.LogInformation("MainViewModel initialized with BPM: {BPM}", _bpm);
     }
 
     #region Properties
@@ -109,7 +115,21 @@ public class MainViewModel : ReactiveObject, IDisposable
     public double BPM
     {
         get => _bpm;
-        set => this.RaiseAndSetIfChanged(ref _bpm, value);
+        set 
+        {
+            _logger.LogDebug("BPM property setter called with value: {Value}", value);
+            this.RaiseAndSetIfChanged(ref _bpm, value);
+            this.RaisePropertyChanged(nameof(BPMDecimal));
+        }
+    }
+
+    /// <summary>
+    /// BPM as decimal for NumericUpDown binding compatibility
+    /// </summary>
+    public decimal BPMDecimal
+    {
+        get => (decimal)_bpm;
+        set => BPM = (double)value;
     }
 
     /// <summary>
@@ -693,6 +713,9 @@ public class MainViewModel : ReactiveObject, IDisposable
             
             // Update markers in trigger service
             _markerTriggerService?.UpdateMarkers();
+            
+            // Trigger property change to update UI
+            this.RaisePropertyChanged(nameof(Lanes));
             
             StatusMessage = $"Cleared {totalMarkers} markers";
             _logger.LogInformation("Cleared {TotalMarkers} markers from all lanes", totalMarkers);

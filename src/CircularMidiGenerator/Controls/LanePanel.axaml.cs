@@ -43,13 +43,7 @@ public partial class LanePanel : UserControl
     private void SetupEventHandlers()
     {
         // Find and set up global control buttons
-        var clearAllSoloButton = this.FindControl<Button>("ClearAllSoloButton");
         var stopAllNotesButton = this.FindControl<Button>("StopAllNotesButton");
-        
-        if (clearAllSoloButton != null)
-        {
-            clearAllSoloButton.Click += OnClearAllSoloClick;
-        }
         
         if (stopAllNotesButton != null)
         {
@@ -57,13 +51,7 @@ public partial class LanePanel : UserControl
         }
     }
 
-    private void OnClearAllSoloClick(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is MainViewModel viewModel)
-        {
-            viewModel.ClearAllSolo();
-        }
-    }
+
 
     private void OnStopAllNotesClick(object? sender, RoutedEventArgs e)
     {
@@ -96,22 +84,8 @@ public partial class LanePanel : UserControl
 
     private void UpdateButtonEventHandlers()
     {
-        // Find all mute and solo buttons in the visual tree and set up event handlers
-        var muteButtons = this.GetLogicalDescendants().OfType<Button>().Where(b => b.Name == "MuteButton");
-        var soloButtons = this.GetLogicalDescendants().OfType<Button>().Where(b => b.Name == "SoloButton");
+        // Find all lane items in the visual tree and set up event handlers
         var laneItems = this.GetLogicalDescendants().OfType<Border>().Where(b => b.Name == "LaneItemBorder");
-        
-        foreach (var button in muteButtons)
-        {
-            button.Click -= OnMuteButtonClick; // Remove existing handler
-            button.Click += OnMuteButtonClick;
-        }
-        
-        foreach (var button in soloButtons)
-        {
-            button.Click -= OnSoloButtonClick; // Remove existing handler
-            button.Click += OnSoloButtonClick;
-        }
         
         foreach (var border in laneItems)
         {
@@ -120,21 +94,7 @@ public partial class LanePanel : UserControl
         }
     }
 
-    private void OnMuteButtonClick(object? sender, RoutedEventArgs e)
-    {
-        if (sender is Button button && button.Tag is int laneId && DataContext is MainViewModel viewModel)
-        {
-            viewModel.SetLaneMute(laneId, !viewModel.Lanes.FirstOrDefault(l => l.Id == laneId)?.IsMuted ?? false);
-        }
-    }
 
-    private void OnSoloButtonClick(object? sender, RoutedEventArgs e)
-    {
-        if (sender is Button button && button.Tag is int laneId && DataContext is MainViewModel viewModel)
-        {
-            viewModel.SetLaneSolo(laneId, !viewModel.Lanes.FirstOrDefault(l => l.Id == laneId)?.IsSoloed ?? false);
-        }
-    }
 
     private void OnLaneItemClick(object? sender, Avalonia.Input.PointerPressedEventArgs e)
     {
