@@ -177,18 +177,7 @@
         </ItemsControl.ItemTemplate>
       </ItemsControl>
       
-      <!-- Global Controls -->
-      <StackPanel Orientation="Vertical" HorizontalAlignment="Stretch" Margin="0,20,0,0" Spacing="10">
-        <Button Content="🛑 Stop All Notes" 
-                Background="{StaticResource MuteButtonGradient}"
-                BorderBrush="{StaticResource AccentPink}"
-                BorderThickness="2"
-                Foreground="White"
-                Padding="15,8"
-                CornerRadius="20"
-                FontWeight="Bold"
-                Name="StopAllNotesButton"/>
-      </StackPanel>
+
       
     </StackPanel>
   </ScrollViewer>

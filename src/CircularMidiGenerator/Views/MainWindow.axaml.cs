@@ -6,6 +6,9 @@ using System.Collections.ObjectModel;
 using CircularMidiGenerator.Core.Models;
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace CircularMidiGenerator.Views;
 
@@ -39,6 +42,9 @@ public partial class MainWindow : Window
             _circularCanvas.MarkerSelected += OnMarkerSelected;
         }
 
+        // Set up MIDI device controls
+        SetupMidiDeviceControls();
+
         // Subscribe to DataContext changes to get the ViewModel
         this.DataContextChanged += (sender, e) =>
         {
@@ -54,8 +60,108 @@ public partial class MainWindow : Window
                     // Force the control to update its value using the decimal property
                     bpmControl.Value = _viewModel.BPMDecimal;
                 }
+                
+                // Load MIDI devices
+                LoadMidiDevicesAsync();
             }
         };
+    }
+
+    private void SetupMidiDeviceControls()
+    {
+        var midiComboBox = this.FindControl<ComboBox>("MidiDeviceComboBox");
+        var refreshButton = this.FindControl<Button>("RefreshMidiButton");
+
+        if (midiComboBox != null)
+        {
+            midiComboBox.SelectionChanged += OnMidiDeviceSelectionChanged;
+        }
+
+        if (refreshButton != null)
+        {
+            refreshButton.Click += OnRefreshMidiDevicesClick;
+        }
+    }
+
+    private async void LoadMidiDevicesAsync()
+    {
+        try
+        {
+            var midiComboBox = this.FindControl<ComboBox>("MidiDeviceComboBox");
+            if (midiComboBox == null) return;
+
+            // Get MIDI device manager from the service provider
+            var deviceManager = App.ServiceProvider?.GetService<CircularMidiGenerator.Core.Services.IMidiDeviceManager>();
+            if (deviceManager == null) return;
+
+            var devices = await deviceManager.GetAvailableDevicesAsync();
+            
+            // Create display items
+            var deviceItems = new List<MidiDeviceItem>();
+            deviceItems.Add(new MidiDeviceItem { Name = "No device selected", Device = null });
+            
+            foreach (var device in devices)
+            {
+                deviceItems.Add(new MidiDeviceItem { Name = device.Name, Device = device });
+            }
+
+            midiComboBox.ItemsSource = deviceItems;
+            midiComboBox.DisplayMemberBinding = new Avalonia.Data.Binding("Name");
+            
+            // Select current active device
+            var activeDevice = deviceManager.ActiveDevice;
+            if (activeDevice != null)
+            {
+                var activeItem = deviceItems.FirstOrDefault(item => item.Device?.Id == activeDevice.Id);
+                if (activeItem != null)
+                {
+                    midiComboBox.SelectedItem = activeItem;
+                }
+            }
+            else
+            {
+                midiComboBox.SelectedIndex = 0; // Select "No device selected"
+            }
+        }
+        catch (Exception ex)
+        {
+            // Handle error silently for now
+            System.Diagnostics.Debug.WriteLine($"Error loading MIDI devices: {ex.Message}");
+        }
+    }
+
+    private async void OnMidiDeviceSelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        try
+        {
+            var comboBox = sender as ComboBox;
+            var selectedItem = comboBox?.SelectedItem as MidiDeviceItem;
+            
+            if (selectedItem?.Device != null)
+            {
+                var deviceManager = App.ServiceProvider?.GetService<CircularMidiGenerator.Core.Services.IMidiDeviceManager>();
+                if (deviceManager != null)
+                {
+                    await deviceManager.SetActiveDeviceAsync(selectedItem.Device);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error selecting MIDI device: {ex.Message}");
+        }
+    }
+
+    private void OnRefreshMidiDevicesClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        LoadMidiDevicesAsync(); // Fire and forget
+    }
+
+    // Helper class for ComboBox items
+    private class MidiDeviceItem
+    {
+        public string Name { get; set; } = "";
+        public CircularMidiGenerator.Core.Services.MidiDevice? Device { get; set; }
     }
 
     private void UpdateCanvasBindings()

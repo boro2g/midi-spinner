@@ -42,25 +42,12 @@ public partial class LanePanel : UserControl
 
     private void SetupEventHandlers()
     {
-        // Find and set up global control buttons
-        var stopAllNotesButton = this.FindControl<Button>("StopAllNotesButton");
-        
-        if (stopAllNotesButton != null)
-        {
-            stopAllNotesButton.Click += OnStopAllNotesClick;
-        }
+        // No global control buttons to set up anymore
     }
 
 
 
-    private void OnStopAllNotesClick(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is MainViewModel viewModel)
-        {
-            // Execute the stop all notes command directly
-            viewModel.StopAllNotesCommand.Execute().Subscribe();
-        }
-    }
+
 
     protected override void OnLoaded(RoutedEventArgs e)
     {

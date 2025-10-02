@@ -58,66 +58,109 @@
 
                 <!-- Top Control Panel -->
                 <Border Grid.Row="0" Background="#2A1B3D" CornerRadius="15" BorderBrush="#FF6B9D" BorderThickness="2" Padding="15" Margin="10">
-                    <StackPanel Orientation="Horizontal" Spacing="20" HorizontalAlignment="Center">
-                        <!-- Playback Controls -->
-                        <Button Content="{Binding PlayButtonText}"
-                                Command="{Binding PlayToggleCommand}"
-                                Background="{Binding PlayButtonColor}"
-                                Foreground="White"
-                                Padding="20,10"
-                                CornerRadius="25"/>
-
-                        <!-- BPM Control -->
-                        <StackPanel Orientation="Horizontal" Spacing="10">
-                            <TextBlock Text="BPM:" VerticalAlignment="Center" Foreground="White" FontWeight="Bold"/>
-                            <NumericUpDown Value="{Binding BPMDecimal, Mode=TwoWay}" 
-                                           Minimum="60" 
-                                           Maximum="200" 
-                                           Width="120"
-                                           Height="35"
-                                           Increment="1"
-                                           FormatString="F0"
-                                           Background="#44318D"
-                                           Foreground="White"
-                                           FontSize="14"
-                                           FontWeight="Bold"
-                                           HorizontalContentAlignment="Center"
-                                           VerticalContentAlignment="Center"
-                                           BorderBrush="#FF6B9D"
-                                           BorderThickness="2"
-                                           CornerRadius="8"
-                                           x:Name="BpmNumericUpDown"/>
-
-                        </StackPanel>
-
-                        <!-- Quantization -->
-                        <CheckBox Content="Quantize" 
-                                  IsChecked="{Binding IsQuantizationEnabled}"
-                                  Foreground="White"/>
-
-                        <!-- File Operations -->
-                        <Button Content="💾 Save" 
-                                Command="{Binding SaveConfigurationCommand}"
-                                Background="#4ECDC4"
-                                Foreground="White"
-                                Padding="15,8"
-                                CornerRadius="20"/>
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
                         
-                        <Button Content="📁 Load" 
-                                Command="{Binding LoadConfigurationCommand}"
-                                Background="#FFD23F"
-                                Foreground="White"
-                                Padding="15,8"
-                                CornerRadius="20"/>
+                        <!-- Top Row: Playback and Settings -->
+                        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="20" HorizontalAlignment="Center" Margin="0,0,0,10">
+                            <!-- Playback Controls -->
+                            <Button Content="{Binding PlayButtonText}"
+                                    Command="{Binding PlayToggleCommand}"
+                                    Background="{Binding PlayButtonColor}"
+                                    Foreground="White"
+                                    Padding="20,10"
+                                    CornerRadius="25"/>
 
-                        <!-- Reset Button -->
-                        <Button Content="🗑️ Reset" 
-                                Command="{Binding ClearAllMarkersCommand}"
-                                Background="#FF6B6B"
-                                Foreground="White"
-                                Padding="15,8"
-                                CornerRadius="20"/>
-                    </StackPanel>
+                            <!-- BPM Control -->
+                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                <TextBlock Text="BPM:" VerticalAlignment="Center" Foreground="White" FontWeight="Bold"/>
+                                <NumericUpDown Value="{Binding BPMDecimal, Mode=TwoWay}" 
+                                               Minimum="60" 
+                                               Maximum="200" 
+                                               Width="100"
+                                               Height="35"
+                                               Increment="1"
+                                               FormatString="F0"
+                                               Background="#44318D"
+                                               Foreground="White"
+                                               FontSize="14"
+                                               FontWeight="Bold"
+                                               HorizontalContentAlignment="Center"
+                                               VerticalContentAlignment="Center"
+                                               BorderBrush="#FF6B9D"
+                                               BorderThickness="2"
+                                               CornerRadius="8"
+                                               x:Name="BpmNumericUpDown"/>
+                            </StackPanel>
+
+                            <!-- MIDI Device Selection -->
+                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                <TextBlock Text="MIDI Out:" VerticalAlignment="Center" Foreground="White" FontWeight="Bold"/>
+                                <ComboBox x:Name="MidiDeviceComboBox"
+                                          Width="180"
+                                          Height="35"
+                                          Background="#44318D"
+                                          Foreground="White"
+                                          BorderBrush="#4ECDC4"
+                                          BorderThickness="2"
+                                          CornerRadius="8"
+                                          FontSize="12"
+                                          VerticalContentAlignment="Center"/>
+                                <Button Content="🔄" 
+                                        Width="35" Height="35"
+                                        Background="#4ECDC4"
+                                        Foreground="White"
+                                        BorderThickness="0"
+                                        CornerRadius="8"
+                                        ToolTip.Tip="Refresh MIDI Devices"
+                                        x:Name="RefreshMidiButton"/>
+                            </StackPanel>
+
+                            <!-- Quantization -->
+                            <CheckBox Content="Quantize" 
+                                      IsChecked="{Binding IsQuantizationEnabled}"
+                                      Foreground="White"/>
+                        </StackPanel>
+                        
+                        <!-- Bottom Row: File Operations -->
+                        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="15" HorizontalAlignment="Center">
+                            <Button Content="💾 Save" 
+                                    Command="{Binding SaveConfigurationCommand}"
+                                    Background="#4ECDC4"
+                                    Foreground="White"
+                                    Padding="20,8"
+                                    CornerRadius="20"
+                                    FontWeight="Bold"/>
+                            
+                            <Button Content="📁 Load" 
+                                    Command="{Binding LoadConfigurationCommand}"
+                                    Background="#FFD23F"
+                                    Foreground="White"
+                                    Padding="20,8"
+                                    CornerRadius="20"
+                                    FontWeight="Bold"/>
+
+                            <Button Content="🗑️ Reset" 
+                                    Command="{Binding ClearAllMarkersCommand}"
+                                    Background="#FF6B6B"
+                                    Foreground="White"
+                                    Padding="20,8"
+                                    CornerRadius="20"
+                                    FontWeight="Bold"/>
+                                    
+                            <Button Content="🛑 Stop All Notes" 
+                                    Command="{Binding StopAllNotesCommand}"
+                                    Background="#FF8E53"
+                                    Foreground="White"
+                                    Padding="20,8"
+                                    CornerRadius="20"
+                                    FontWeight="Bold"
+                                    ToolTip.Tip="Emergency stop for all MIDI notes"/>
+                        </StackPanel>
+                    </Grid>
                 </Border>
 
                 <!-- Main Canvas Area -->
