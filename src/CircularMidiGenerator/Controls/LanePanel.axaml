@@ -220,7 +220,10 @@
       <ItemsControl Name="LanesItemsControl">
         <ItemsControl.ItemTemplate>
           <DataTemplate DataType="models:Lane">
-            <Border Classes="lane-item">
+            <Border Classes="lane-item" 
+                    Name="LaneItemBorder"
+                    Tag="{Binding Id}"
+                    Cursor="Hand">
               <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto">
                 
                 <!-- Theme Color Indicator -->

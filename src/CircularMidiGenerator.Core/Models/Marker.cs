@@ -10,6 +10,7 @@ public class Marker
 {
     private double _angle;
     private int _velocity;
+    private double _noteLength = 0.25; // Default to quarter note
 
     public Guid Id { get; set; } = Guid.NewGuid();
 
@@ -43,6 +44,20 @@ public class Marker
             if (value < 1 || value > 127)
                 throw new ArgumentOutOfRangeException(nameof(value), "Velocity must be between 1 and 127");
             _velocity = value;
+        }
+    }
+
+    /// <summary>
+    /// Note length as a fraction of a whole note (0.0625 = 1/16, 0.125 = 1/8, 0.25 = 1/4, 0.5 = 1/2, 1.0 = whole)
+    /// </summary>
+    public double NoteLength
+    {
+        get => _noteLength;
+        set
+        {
+            if (value <= 0 || value > 4.0)
+                throw new ArgumentOutOfRangeException(nameof(value), "Note length must be between 0 and 4.0 (whole note)");
+            _noteLength = value;
         }
     }
 
@@ -82,12 +97,13 @@ public class Marker
         Color = Color.Red; // Default color
     }
 
-    public Marker(double angle, Color color, int velocity = 100, int lane = 0)
+    public Marker(double angle, Color color, int velocity = 100, int lane = 0, double noteLength = 0.25)
     {
         Angle = angle;
         Color = color;
         Velocity = velocity;
         Lane = lane;
+        NoteLength = noteLength;
     }
 
     /// <summary>

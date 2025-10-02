@@ -295,6 +295,13 @@ public class CircularCanvas : Control
     private readonly Dictionary<Marker, RemovalAnimationInfo> _removalAnimations = new();
     private DispatcherTimer? _animationTimer;
 
+    // Right-click drag support for velocity and note length
+    private bool _isRightClickDragging;
+    private Marker? _rightClickDraggedMarker;
+    private Point _rightClickStartPosition;
+    private int _initialVelocity;
+    private double _initialNoteLength;
+
     // Visual styling
     private readonly IBrush _diskBrush = new SolidColorBrush(Color.FromRgb(45, 45, 55));
     private readonly IPen _diskPen = new Pen(new SolidColorBrush(Color.FromRgb(80, 80, 90)), 2);
@@ -413,7 +420,7 @@ public class CircularCanvas : Control
 
         foreach (var marker in Markers)
         {
-            var markerPosition = CalculatePosition(marker.Angle + DiskRotation, _radius * 0.85);
+            var markerPosition = CalculateMarkerPosition(marker);
             if (rect.Contains(markerPosition))
             {
                 markersInRect.Add(marker);
@@ -744,6 +751,27 @@ public class CircularCanvas : Control
     }
 
     /// <summary>
+    /// Calculates the radius for a specific lane
+    /// </summary>
+    private double GetLaneRadius(int laneId)
+    {
+        var laneSpacing = 25;
+        var startRadius = _radius - 40;
+        var laneIndex = Lanes?.ToList().FindIndex(l => l.Id == laneId) ?? 0;
+        
+        return startRadius - (laneIndex * laneSpacing);
+    }
+
+    /// <summary>
+    /// Calculates the position for a marker based on its lane
+    /// </summary>
+    private Point CalculateMarkerPosition(Marker marker)
+    {
+        var laneRadius = GetLaneRadius(marker.Lane);
+        return CalculatePosition(marker.Angle + DiskRotation, laneRadius);
+    }
+
+    /// <summary>
     /// Calculates the distance from center to a point
     /// </summary>
     private double CalculateDistance(Point point)
@@ -770,7 +798,7 @@ public class CircularCanvas : Control
 
         foreach (var marker in Markers)
         {
-            var markerPosition = CalculatePosition(marker.Angle + DiskRotation, _radius * 0.85);
+            var markerPosition = CalculateMarkerPosition(marker);
             var distance = Math.Sqrt(
                 Math.Pow(position.X - markerPosition.X, 2) + 
                 Math.Pow(position.Y - markerPosition.Y, 2)
@@ -843,6 +871,14 @@ public class CircularCanvas : Control
         if (clickedMarker != null)
         {
             pointerInfo.AssociatedMarker = clickedMarker;
+            
+            // Handle right-click for velocity and note length adjustment
+            if (e.GetCurrentPoint(this).Properties.IsRightButtonPressed)
+            {
+                StartRightClickDrag(clickedMarker, position);
+                e.Pointer.Capture(this);
+                return;
+            }
             
             // Handle multi-selection with Ctrl key
             if (isCtrlPressed)
@@ -951,6 +987,13 @@ public class CircularCanvas : Control
             return;
         }
         
+        // Handle right-click dragging for velocity and note length
+        if (_isRightClickDragging)
+        {
+            HandleRightClickDrag(position);
+            return;
+        }
+
         // Handle multi-marker dragging
         if (_isMultiDragging && SelectedMarkers?.Count > 0)
         {
@@ -994,6 +1037,14 @@ public class CircularCanvas : Control
             return;
         }
         
+        // Handle right-click drag completion
+        if (_isRightClickDragging)
+        {
+            CompleteRightClickDrag();
+            e.Pointer.Capture(null);
+            return;
+        }
+
         // End selection mode
         if (_isSelectionMode)
         {
@@ -1029,6 +1080,73 @@ public class CircularCanvas : Control
         
         // Reset cursor
         Cursor = new Cursor(StandardCursorType.Arrow);
+    }
+
+    #endregion
+
+    #region Right-Click Drag Handling
+
+    private void StartRightClickDrag(Marker marker, Point startPosition)
+    {
+        _isRightClickDragging = true;
+        _rightClickDraggedMarker = marker;
+        _rightClickStartPosition = startPosition;
+        _initialVelocity = marker.Velocity;
+        _initialNoteLength = marker.NoteLength;
+        
+        // Select the marker for visual feedback
+        ClearSelection();
+        AddToSelection(marker);
+        
+        // Change cursor to indicate special drag mode
+        Cursor = new Cursor(StandardCursorType.SizeNorthSouth);
+        
+        // Trigger haptic feedback
+        TriggerHapticFeedback(HapticFeedbackType.MarkerSelect);
+    }
+
+    private void HandleRightClickDrag(Point currentPosition)
+    {
+        if (!_isRightClickDragging || _rightClickDraggedMarker == null) return;
+
+        var deltaX = currentPosition.X - _rightClickStartPosition.X;
+        var deltaY = currentPosition.Y - _rightClickStartPosition.Y;
+
+        // Vertical drag controls velocity (up = higher velocity, down = lower velocity)
+        var velocityDelta = (int)(-deltaY * 0.5); // Negative because Y increases downward
+        var newVelocity = Math.Max(1, Math.Min(127, _initialVelocity + velocityDelta));
+
+        // Horizontal drag controls note length (right = longer, left = shorter)
+        var noteLengthDelta = deltaX * 0.002; // Small multiplier for fine control
+        var newNoteLength = Math.Max(0.0625, Math.Min(4.0, _initialNoteLength + noteLengthDelta)); // 1/16 note to whole note
+
+        // Update marker properties
+        _rightClickDraggedMarker.Velocity = newVelocity;
+        _rightClickDraggedMarker.NoteLength = newNoteLength;
+
+        // Update cursor based on primary drag direction
+        if (Math.Abs(deltaY) > Math.Abs(deltaX))
+        {
+            Cursor = new Cursor(StandardCursorType.SizeNorthSouth); // Velocity mode
+        }
+        else
+        {
+            Cursor = new Cursor(StandardCursorType.SizeWestEast); // Note length mode
+        }
+
+        InvalidateVisual();
+    }
+
+    private void CompleteRightClickDrag()
+    {
+        if (!_isRightClickDragging) return;
+
+        _isRightClickDragging = false;
+        _rightClickDraggedMarker = null;
+        Cursor = new Cursor(StandardCursorType.Arrow);
+
+        // Trigger haptic feedback for completion
+        TriggerHapticFeedback(HapticFeedbackType.MarkerPlace);
     }
 
     #endregion
@@ -1175,7 +1293,7 @@ public class CircularCanvas : Control
         // Store initial positions for relative movement
         foreach (var marker in SelectedMarkers)
         {
-            var markerPosition = CalculatePosition(marker.Angle + DiskRotation, _radius * 0.85);
+            var markerPosition = CalculateMarkerPosition(marker);
             _multiDragStartPositions[marker] = markerPosition;
         }
     }
@@ -1435,11 +1553,18 @@ public class CircularCanvas : Control
     {
         var angle = CalculateAngle(position);
         
+        // For now, store the raw angle without any rotation compensation
+        // We'll fix the rotation issue after basic placement works
+        
         // Apply quantization to new marker placement if enabled
         if (IsQuantizationEnabled && GridLines != null)
         {
             angle = SnapToNearestGridLine(angle);
         }
+        
+        // Determine which lane the user clicked in based on distance from center
+        var distanceFromCenter = CalculateDistance(position);
+        var targetLaneId = DetermineLaneFromDistance(distanceFromCenter);
         
         // Create new marker with color based on angle (chromatic mapping)
         var semitone = (int)(angle / 30) % 12;
@@ -1447,8 +1572,10 @@ public class CircularCanvas : Control
         var color = Marker.GetColorFromMidiNote(midiNote);
         var newMarker = new Marker(angle, System.Drawing.Color.FromArgb(color.R, color.G, color.B));
         
+        // Set lane assignment
+        newMarker.Lane = targetLaneId;
+        
         // Set default velocity based on distance from center
-        var distanceFromCenter = CalculateDistance(position);
         var normalizedDistance = Math.Min(1.0, distanceFromCenter / _radius);
         var velocity = (int)(127 * (1.0 - normalizedDistance * 0.3));
         newMarker.Velocity = Math.Max(70, velocity);
@@ -1457,6 +1584,42 @@ public class CircularCanvas : Control
         
         // Trigger haptic feedback for marker placement
         TriggerHapticFeedback(HapticFeedbackType.MarkerPlace);
+    }
+
+
+
+    /// <summary>
+    /// Determines which lane a click position corresponds to based on distance from center
+    /// </summary>
+    private int DetermineLaneFromDistance(double distanceFromCenter)
+    {
+        if (Lanes == null || !Lanes.Any()) return SelectedLaneId;
+
+        var laneSpacing = 25;
+        var startRadius = _radius - 40;
+        
+        // Find the closest lane based on distance
+        var bestLaneId = SelectedLaneId;
+        var bestDistance = double.MaxValue;
+        
+        for (int i = 0; i < Lanes.Count && i < 6; i++)
+        {
+            var lane = Lanes[i];
+            var laneRadius = startRadius - (i * laneSpacing);
+            
+            // Skip lanes that would be too close to center
+            if (laneRadius < 30) continue;
+            
+            var distance = Math.Abs(distanceFromCenter - laneRadius);
+            
+            if (distance < bestDistance)
+            {
+                bestDistance = distance;
+                bestLaneId = lane.Id;
+            }
+        }
+        
+        return bestLaneId;
     }
 
     #endregion
@@ -1541,6 +1704,12 @@ public class CircularCanvas : Control
         // Draw main disk
         context.DrawEllipse(_diskBrush, _diskPen, _center, _radius, _radius);
         
+        // Draw lane indicators
+        DrawLaneIndicators(context);
+        
+        // Draw visual notches every 8th of the diameter (45 degrees apart)
+        DrawDiskNotches(context);
+        
         // Draw center dot
         var centerDotRadius = 5;
         context.DrawEllipse(
@@ -1550,6 +1719,158 @@ public class CircularCanvas : Control
             centerDotRadius, 
             centerDotRadius
         );
+    }
+
+    private void DrawLaneIndicators(DrawingContext context)
+    {
+        if (Lanes == null || !Lanes.Any()) return;
+
+        var laneSpacing = 25; // Distance between lane rings
+        var startRadius = _radius - 40; // Start lanes inside the disk edge
+
+        for (int i = 0; i < Math.Min(Lanes.Count, 6); i++) // Limit to 6 lanes for visual clarity
+        {
+            var lane = Lanes[i];
+            var laneRadius = startRadius - (i * laneSpacing);
+            
+            if (laneRadius < 30) break; // Don't draw lanes too close to center
+
+            // Convert System.Drawing.Color to Avalonia Color
+            var laneColor = Color.FromArgb(lane.ThemeColor.A, lane.ThemeColor.R, lane.ThemeColor.G, lane.ThemeColor.B);
+            
+            // Draw lane ring with theme color
+            var lanePen = new Pen(new SolidColorBrush(laneColor, 0.4), 2);
+            context.DrawEllipse(null, lanePen, _center, laneRadius, laneRadius);
+
+            // Highlight selected lane
+            if (lane.Id == SelectedLaneId)
+            {
+                var selectedPen = new Pen(new SolidColorBrush(laneColor, 0.8), 3);
+                context.DrawEllipse(null, selectedPen, _center, laneRadius, laneRadius);
+            }
+
+            // Draw lane label at 12 o'clock position
+            DrawLaneLabel(context, lane, laneRadius, i);
+        }
+    }
+
+    private void DrawLaneLabel(DrawingContext context, Lane lane, double laneRadius, int laneIndex)
+    {
+        // Position label at top of the lane ring
+        var labelX = _center.X;
+        var labelY = _center.Y - laneRadius - 15;
+        var labelPosition = new Point(labelX, labelY);
+
+        // Convert System.Drawing.Color to Avalonia Color
+        var laneColor = Color.FromArgb(lane.ThemeColor.A, lane.ThemeColor.R, lane.ThemeColor.G, lane.ThemeColor.B);
+        
+        // Create label background
+        var backgroundBrush = new SolidColorBrush(Color.FromArgb(180, 0, 0, 0));
+        var borderBrush = new SolidColorBrush(laneColor);
+        
+        // Lane name and channel info
+        var labelText = $"{lane.Name} (Ch{lane.MidiChannel})";
+        var textBrush = new SolidColorBrush(Color.FromRgb(255, 255, 255));
+        var typeface = new Typeface("Arial", FontStyle.Normal, FontWeight.Bold);
+        
+        var formattedText = new FormattedText(
+            labelText,
+            System.Globalization.CultureInfo.CurrentCulture,
+            FlowDirection.LeftToRight,
+            typeface,
+            10,
+            textBrush
+        );
+
+        // Draw background rectangle
+        var padding = 4;
+        var backgroundRect = new Rect(
+            labelPosition.X - formattedText.Width / 2 - padding,
+            labelPosition.Y - formattedText.Height / 2 - padding,
+            formattedText.Width + padding * 2,
+            formattedText.Height + padding * 2
+        );
+
+        context.DrawRectangle(backgroundBrush, new Pen(borderBrush, 1), backgroundRect, 3, 3);
+
+        // Draw text
+        var textPosition = new Point(
+            labelPosition.X - formattedText.Width / 2,
+            labelPosition.Y - formattedText.Height / 2
+        );
+        
+        context.DrawText(formattedText, textPosition);
+
+        // Draw mute/solo indicators
+        if (lane.IsMuted || lane.IsSoloed)
+        {
+            DrawLaneStateIndicators(context, lane, backgroundRect);
+        }
+    }
+
+    private void DrawLaneStateIndicators(DrawingContext context, Lane lane, Rect labelRect)
+    {
+        var indicatorSize = 8;
+        var indicatorY = labelRect.Bottom + 2;
+        
+        if (lane.IsMuted)
+        {
+            // Draw mute indicator (red X)
+            var muteX = labelRect.Left + 5;
+            var muteBrush = new SolidColorBrush(Color.FromRgb(255, 100, 100));
+            var mutePen = new Pen(muteBrush, 2);
+            
+            context.DrawLine(mutePen, 
+                new Point(muteX, indicatorY), 
+                new Point(muteX + indicatorSize, indicatorY + indicatorSize));
+            context.DrawLine(mutePen, 
+                new Point(muteX + indicatorSize, indicatorY), 
+                new Point(muteX, indicatorY + indicatorSize));
+        }
+        
+        if (lane.IsSoloed)
+        {
+            // Draw solo indicator (yellow S)
+            var soloX = labelRect.Right - 15;
+            var soloBrush = new SolidColorBrush(Color.FromRgb(255, 255, 100));
+            var typeface = new Typeface("Arial", FontStyle.Normal, FontWeight.Bold);
+            
+            var soloText = new FormattedText(
+                "S",
+                System.Globalization.CultureInfo.CurrentCulture,
+                FlowDirection.LeftToRight,
+                typeface,
+                10,
+                soloBrush
+            );
+            
+            context.DrawText(soloText, new Point(soloX, indicatorY));
+        }
+    }
+
+    private void DrawDiskNotches(DrawingContext context)
+    {
+        var notchPen = new Pen(new SolidColorBrush(Color.FromArgb(120, 255, 255, 255)), 1.5);
+        var notchLength = 15;
+        
+        // Draw 8 notches (every 45 degrees)
+        for (int i = 0; i < 8; i++)
+        {
+            var angle = i * 45.0; // 360 / 8 = 45 degrees
+            var radians = (angle - 90) * Math.PI / 180.0; // -90 to start at top
+            
+            // Outer edge of notch
+            var outerX = _center.X + Math.Cos(radians) * _radius;
+            var outerY = _center.Y + Math.Sin(radians) * _radius;
+            var outerPoint = new Point(outerX, outerY);
+            
+            // Inner edge of notch
+            var innerX = _center.X + Math.Cos(radians) * (_radius - notchLength);
+            var innerY = _center.Y + Math.Sin(radians) * (_radius - notchLength);
+            var innerPoint = new Point(innerX, innerY);
+            
+            context.DrawLine(notchPen, outerPoint, innerPoint);
+        }
     }
 
     private void DrawQuantizationGrid(DrawingContext context)
@@ -1592,9 +1913,12 @@ public class CircularCanvas : Control
 
     private void DrawMarker(DrawingContext context, Marker marker)
     {
-        var position = CalculatePosition(marker.Angle, _radius * 0.85);
+        var position = CalculateMarkerPosition(marker);
         var baseRadius = 8 * ZoomLevel; // Apply zoom to marker size
-        var markerRadius = baseRadius;
+        
+        // Scale marker size based on note length (0.0625 = 1/16 note, 1.0 = whole note)
+        var noteLengthMultiplier = Math.Max(0.5, Math.Min(2.0, marker.NoteLength * 4)); // Scale 0.25 (1/4) to 1.0, max 2.0
+        var markerRadius = baseRadius * noteLengthMultiplier;
         
         // Convert System.Drawing.Color to Avalonia Color
         var avaloniaColor = Color.FromArgb(marker.Color.A, marker.Color.R, marker.Color.G, marker.Color.B);
@@ -1648,10 +1972,9 @@ public class CircularCanvas : Control
         var velocity = marker.Velocity;
         var velocityNormalized = velocity / 127.0;
         
-        // Velocity affects both opacity and size slightly
-        var velocityOpacity = Math.Max(0.4, velocityNormalized);
-        var velocitySizeMultiplier = 0.7 + (velocityNormalized * 0.3); // 0.7 to 1.0 range
-        var finalRadius = markerRadius * velocitySizeMultiplier;
+        // Velocity affects opacity (transparency shows velocity)
+        var velocityOpacity = Math.Max(0.3, velocityNormalized * 0.8 + 0.2); // Range from 0.2 to 1.0
+        var finalRadius = markerRadius; // Size is now controlled by note length, not velocity
         
         var markerBrush = new SolidColorBrush(avaloniaColor, velocityOpacity);
         
@@ -1678,10 +2001,10 @@ public class CircularCanvas : Control
         var markerPen = new Pen(borderBrush, borderThickness);
         context.DrawEllipse(markerBrush, markerPen, position, finalRadius, finalRadius);
         
-        // Velocity visualization for selected markers
+        // Velocity and note length visualization for selected markers
         if (marker == SelectedMarker)
         {
-            DrawVelocityIndicator(context, position, velocity, finalRadius);
+            DrawVelocityAndNoteLengthIndicator(context, position, marker, finalRadius);
         }
         
         // Lane indicator (small colored dot)
@@ -1697,69 +2020,124 @@ public class CircularCanvas : Control
         }
     }
     
-    private void DrawVelocityIndicator(DrawingContext context, Point markerPosition, int velocity, double markerRadius)
+    private void DrawVelocityAndNoteLengthIndicator(DrawingContext context, Point markerPosition, Marker marker, double markerRadius)
     {
+        var velocity = marker.Velocity;
+        var noteLength = marker.NoteLength;
         var velocityNormalized = velocity / 127.0;
-        var indicatorHeight = velocityNormalized * 25;
-        var indicatorWidth = 3;
         
-        // Position the velocity bar below the marker
-        var barX = markerPosition.X - indicatorWidth / 2;
-        var barY = markerPosition.Y + markerRadius + 3;
+        // Velocity indicator (vertical bar on the left)
+        var velocityBarWidth = 3;
+        var velocityBarHeight = 25;
+        var velocityIndicatorHeight = velocityNormalized * velocityBarHeight;
         
-        // Background bar (full height, dimmed)
-        var backgroundRect = new Rect(barX, barY, indicatorWidth, 25);
-        var backgroundBrush = new SolidColorBrush(Color.FromRgb(100, 100, 100), 0.3);
-        context.DrawRectangle(backgroundBrush, null, backgroundRect);
+        var velocityBarX = markerPosition.X - markerRadius - 8;
+        var velocityBarY = markerPosition.Y - velocityBarHeight / 2;
+        
+        // Background bar for velocity
+        var velocityBackgroundRect = new Rect(velocityBarX, velocityBarY, velocityBarWidth, velocityBarHeight);
+        var velocityBackgroundBrush = new SolidColorBrush(Color.FromRgb(100, 100, 100), 0.3);
+        context.DrawRectangle(velocityBackgroundBrush, null, velocityBackgroundRect);
         
         // Velocity bar (actual velocity height)
-        var velocityRect = new Rect(barX, barY + (25 - indicatorHeight), indicatorWidth, indicatorHeight);
+        var velocityRect = new Rect(velocityBarX, velocityBarY + (velocityBarHeight - velocityIndicatorHeight), velocityBarWidth, velocityIndicatorHeight);
         
         // Color-code velocity: green (low) to yellow (mid) to red (high)
         Color velocityColor;
         if (velocityNormalized < 0.5)
         {
-            // Green to yellow
             var t = velocityNormalized * 2;
-            velocityColor = Color.FromRgb(
-                (byte)(0 + t * 255),
-                255,
-                0
-            );
+            velocityColor = Color.FromRgb((byte)(0 + t * 255), 255, 0);
         }
         else
         {
-            // Yellow to red
             var t = (velocityNormalized - 0.5) * 2;
-            velocityColor = Color.FromRgb(
-                255,
-                (byte)(255 - t * 255),
-                0
-            );
+            velocityColor = Color.FromRgb(255, (byte)(255 - t * 255), 0);
         }
         
         var velocityBrush = new SolidColorBrush(velocityColor);
         context.DrawRectangle(velocityBrush, null, velocityRect);
         
-        // Velocity text
-        var velocityText = velocity.ToString();
+        // Note length indicator (horizontal bar on the right)
+        var noteLengthBarWidth = 25;
+        var noteLengthBarHeight = 3;
+        var noteLengthNormalized = Math.Min(1.0, noteLength / 1.0); // Normalize to whole note (1.0)
+        var noteLengthIndicatorWidth = noteLengthNormalized * noteLengthBarWidth;
+        
+        var noteLengthBarX = markerPosition.X + markerRadius + 5;
+        var noteLengthBarY = markerPosition.Y - noteLengthBarHeight / 2;
+        
+        // Background bar for note length
+        var noteLengthBackgroundRect = new Rect(noteLengthBarX, noteLengthBarY, noteLengthBarWidth, noteLengthBarHeight);
+        var noteLengthBackgroundBrush = new SolidColorBrush(Color.FromRgb(100, 100, 100), 0.3);
+        context.DrawRectangle(noteLengthBackgroundBrush, null, noteLengthBackgroundRect);
+        
+        // Note length bar (actual length width)
+        var noteLengthRect = new Rect(noteLengthBarX, noteLengthBarY, noteLengthIndicatorWidth, noteLengthBarHeight);
+        
+        // Color-code note length: blue (short) to purple (long)
+        var noteLengthColor = Color.FromRgb(
+            (byte)(100 + noteLengthNormalized * 155),
+            (byte)(100 - noteLengthNormalized * 50),
+            255
+        );
+        
+        var noteLengthBrush = new SolidColorBrush(noteLengthColor);
+        context.DrawRectangle(noteLengthBrush, null, noteLengthRect);
+        
+        // Text indicators
         var textBrush = new SolidColorBrush(Color.FromRgb(255, 255, 255));
         var typeface = new Typeface("Arial");
-        var formattedText = new FormattedText(
+        
+        // Velocity text
+        var velocityText = velocity.ToString();
+        var velocityFormattedText = new FormattedText(
             velocityText,
             System.Globalization.CultureInfo.CurrentCulture,
             FlowDirection.LeftToRight,
             typeface,
-            10,
+            9,
             textBrush
         );
         
-        var textPosition = new Point(
-            markerPosition.X - formattedText.Width / 2,
-            barY + 27
+        var velocityTextPosition = new Point(
+            velocityBarX - velocityFormattedText.Width - 2,
+            velocityBarY + velocityBarHeight / 2 - velocityFormattedText.Height / 2
         );
         
-        context.DrawText(formattedText, textPosition);
+        context.DrawText(velocityFormattedText, velocityTextPosition);
+        
+        // Note length text (show as fraction)
+        var noteLengthText = GetNoteLengthDisplayText(noteLength);
+        var noteLengthFormattedText = new FormattedText(
+            noteLengthText,
+            System.Globalization.CultureInfo.CurrentCulture,
+            FlowDirection.LeftToRight,
+            typeface,
+            9,
+            textBrush
+        );
+        
+        var noteLengthTextPosition = new Point(
+            noteLengthBarX + noteLengthBarWidth + 2,
+            noteLengthBarY - noteLengthFormattedText.Height / 2
+        );
+        
+        context.DrawText(noteLengthFormattedText, noteLengthTextPosition);
+    }
+
+    private string GetNoteLengthDisplayText(double noteLength)
+    {
+        // Convert note length to common musical fractions
+        if (Math.Abs(noteLength - 0.0625) < 0.01) return "1/16";
+        if (Math.Abs(noteLength - 0.125) < 0.01) return "1/8";
+        if (Math.Abs(noteLength - 0.25) < 0.01) return "1/4";
+        if (Math.Abs(noteLength - 0.5) < 0.01) return "1/2";
+        if (Math.Abs(noteLength - 1.0) < 0.01) return "1/1";
+        if (Math.Abs(noteLength - 2.0) < 0.01) return "2/1";
+        
+        // For other values, show as decimal
+        return noteLength.ToString("F2");
     }
     
     private void DrawLaneIndicator(DrawingContext context, Point markerPosition, int lane, double markerRadius)
@@ -1930,7 +2308,7 @@ public class CircularCanvas : Control
         var connectionPen = new Pen(new SolidColorBrush(Color.FromArgb(100, 100, 255, 100)), 1);
         
         var positions = SelectedMarkers
-            .Select(m => CalculatePosition(m.Angle + DiskRotation, _radius * 0.85))
+            .Select(m => CalculateMarkerPosition(m))
             .ToArray();
         
         // Draw lines connecting all selected markers

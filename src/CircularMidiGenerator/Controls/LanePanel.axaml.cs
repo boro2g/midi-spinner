@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reactive;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.LogicalTree;
 using CircularMidiGenerator.Core.Models;
@@ -98,6 +99,7 @@ public partial class LanePanel : UserControl
         // Find all mute and solo buttons in the visual tree and set up event handlers
         var muteButtons = this.GetLogicalDescendants().OfType<Button>().Where(b => b.Name == "MuteButton");
         var soloButtons = this.GetLogicalDescendants().OfType<Button>().Where(b => b.Name == "SoloButton");
+        var laneItems = this.GetLogicalDescendants().OfType<Border>().Where(b => b.Name == "LaneItemBorder");
         
         foreach (var button in muteButtons)
         {
@@ -109,6 +111,12 @@ public partial class LanePanel : UserControl
         {
             button.Click -= OnSoloButtonClick; // Remove existing handler
             button.Click += OnSoloButtonClick;
+        }
+        
+        foreach (var border in laneItems)
+        {
+            border.PointerPressed -= OnLaneItemClick; // Remove existing handler
+            border.PointerPressed += OnLaneItemClick;
         }
     }
 
@@ -125,6 +133,41 @@ public partial class LanePanel : UserControl
         if (sender is Button button && button.Tag is int laneId && DataContext is MainViewModel viewModel)
         {
             viewModel.SetLaneSolo(laneId, !viewModel.Lanes.FirstOrDefault(l => l.Id == laneId)?.IsSoloed ?? false);
+        }
+    }
+
+    private void OnLaneItemClick(object? sender, Avalonia.Input.PointerPressedEventArgs e)
+    {
+        if (sender is Border border && border.Tag is int laneId && DataContext is MainViewModel viewModel)
+        {
+            // Set the selected lane
+            viewModel.SelectedLaneId = laneId;
+            
+            // Update visual selection state
+            UpdateLaneSelection();
+        }
+    }
+
+    private void UpdateLaneSelection()
+    {
+        if (DataContext is not MainViewModel viewModel) return;
+        
+        var laneItems = this.GetLogicalDescendants().OfType<Border>().Where(b => b.Name == "LaneItemBorder");
+        
+        foreach (var border in laneItems)
+        {
+            if (border.Tag is int laneId)
+            {
+                // Add or remove selected class based on whether this is the selected lane
+                if (laneId == viewModel.SelectedLaneId)
+                {
+                    border.Classes.Add("selected");
+                }
+                else
+                {
+                    border.Classes.Remove("selected");
+                }
+            }
         }
     }
 }

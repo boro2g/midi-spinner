@@ -80,10 +80,12 @@
                         <!-- BPM Control -->
                         <StackPanel Orientation="Horizontal" Spacing="10">
                             <TextBlock Text="BPM:" VerticalAlignment="Center" Foreground="White" FontWeight="Bold"/>
-                            <NumericUpDown Value="{Binding BPM}" 
+                            <NumericUpDown Value="{Binding BPM, Mode=TwoWay}" 
                                            Minimum="60" 
                                            Maximum="200" 
                                            Width="80"
+                                           Increment="1"
+                                           FormatString="F0"
                                            Background="#44318D"
                                            Foreground="White"/>
                         </StackPanel>
@@ -107,6 +109,14 @@
                                 Foreground="White"
                                 Padding="15,8"
                                 CornerRadius="20"/>
+
+                        <!-- Reset Button -->
+                        <Button Content="🗑️ Reset" 
+                                Command="{Binding ClearAllMarkersCommand}"
+                                Background="#FF6B6B"
+                                Foreground="White"
+                                Padding="15,8"
+                                CornerRadius="20"/>
                     </StackPanel>
                 </Border>
 
@@ -122,9 +132,16 @@
                         <!-- Instructions -->
                         <Border HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,30"
                                 Background="#2A1B3D" CornerRadius="15" Padding="20,10" BorderBrush="#FF6B9D" BorderThickness="1">
-                            <TextBlock Text="✨ Click to place markers • Drag to move • Drag outside to remove ✨" 
-                                       Foreground="White"
-                                       TextAlignment="Center"/>
+                            <StackPanel>
+                                <TextBlock Text="✨ Click to place markers • Drag to move • Drag outside to remove ✨" 
+                                           Foreground="White"
+                                           TextAlignment="Center"
+                                           Margin="0,0,0,5"/>
+                                <TextBlock Text="🎛️ Right-click + drag: ↕️ Velocity • ↔️ Note Length" 
+                                           Foreground="#FFD23F"
+                                           TextAlignment="Center"
+                                           FontSize="12"/>
+                            </StackPanel>
                         </Border>
                     </Grid>
                 </Border>
