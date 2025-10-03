@@ -1689,10 +1689,10 @@ public class CircularCanvas : Control
         // Set lane assignment
         newMarker.Lane = targetLaneId;
         
-        // Set default velocity based on distance from center
+        // Set default velocity based on distance from center (ensure reasonable values)
         var normalizedDistance = Math.Min(1.0, distanceFromCenter / _radius);
         var velocity = (int)(127 * (1.0 - normalizedDistance * 0.3));
-        newMarker.Velocity = Math.Max(70, velocity);
+        newMarker.Velocity = Math.Max(80, Math.Min(127, velocity)); // Ensure velocity is between 80-127
         
         MarkerPlaced?.Invoke(this, new MarkerPlacedEventArgs(newMarker, position));
         
