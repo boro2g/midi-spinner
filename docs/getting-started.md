@@ -65,7 +65,56 @@ This guide will help you install and start using Circular MIDI Generator in just
    EOF
    ```
 
-## First Steps
+## macOS + Ableton Live Quick Setup
+
+If you're using macOS with Ableton Live, follow these steps for the fastest setup:
+
+### 1. Create Virtual MIDI Connection
+1. **Open Audio MIDI Setup**:
+   - Press `Cmd + Space` and type "Audio MIDI Setup"
+   - Or go to **Applications > Utilities > Audio MIDI Setup**
+
+2. **Enable IAC Driver**:
+   - Go to **Window > Show MIDI Studio** (or press `Cmd + 2`)
+   - Double-click the **IAC Driver** icon
+   - Check **"Device is online"**
+   - You should see **"IAC Bus 1"** listed - this is your virtual MIDI port
+
+### 2. Configure Ableton Live
+1. **Open MIDI Preferences**:
+   - In Ableton Live, go to **Live > Preferences** (or press `Cmd + ,`)
+   - Click on **Link/Tempo/MIDI** tab
+
+2. **Enable IAC Bus**:
+   - Find **"IAC Bus 1"** in the MIDI Ports section
+   - Set both **Track** and **Remote** to **"On"**
+
+3. **Create MIDI Track**:
+   - Create a new MIDI track (`Cmd + Shift + T`)
+   - Set the track's **MIDI From** to **"IAC Bus 1"**
+   - Load an instrument (like **Wavetable**, **Operator**, or **Drum Rack**)
+   - **Arm the track** for recording (click the record button on the track)
+
+### 3. Configure Circular MIDI Generator
+1. **Launch the App** and wait for it to fully load
+2. **Select MIDI Device**:
+   - In the control panel, find the **"MIDI Out:"** dropdown
+   - Select **"IAC Bus 1"** from the list
+   - If you don't see it, click the **🔄** refresh button
+
+3. **Test the Connection**:
+   - Click anywhere on the circular disk to place a marker
+   - Press the **Play** button (▶️)
+   - You should hear the note play in Ableton when the marker passes 12 o'clock!
+
+### 4. Create Your First Pattern
+- Place markers at 12, 3, 6, and 9 o'clock positions for a basic 4/4 pattern
+- Adjust BPM to **120** for a comfortable tempo
+- Try dragging markers up and down to change velocity (volume)
+
+---
+
+## General Setup (All Platforms)
 
 ### 1. MIDI Setup
 
@@ -77,9 +126,10 @@ Before creating music, you need to set up MIDI output:
    - Virtual MIDI cable (loopMIDI on Windows, IAC Driver on macOS)
 
 2. **Select MIDI Output**
-   - In Circular MIDI Generator, look for the MIDI device dropdown
-   - Select your desired output device
-   - You should see a green connection indicator when successful
+   - In Circular MIDI Generator, find the **"MIDI Out:"** dropdown in the control panel
+   - Select your desired output device (e.g., "IAC Bus 1" for Ableton Live on macOS)
+   - Click the **🔄** refresh button if your device doesn't appear
+   - The dropdown will show "No device selected" until you choose one
 
 3. **Test MIDI Output**
    - Click anywhere on the circular disk to place a marker
@@ -116,8 +166,10 @@ Let's create a simple drum pattern:
 - **Circular Disk**: The main workspace where you place markers
 - **Playhead**: Red line at 12 o'clock that triggers notes
 - **Markers**: Colored dots that represent MIDI notes
-- **Lane Controls**: Buttons on the side for different instrument tracks
-- **Transport Controls**: Play, stop, and tempo controls
+- **Control Panel**: Two-row layout with playback and file controls
+  - **Top Row**: Play button, BPM control, MIDI device selection, Quantize checkbox
+  - **Bottom Row**: Save, Load, Reset, and Stop All Notes buttons
+- **Lane Panel**: Right sidebar for managing different instrument tracks
 
 #### Color Coding
 Markers are automatically colored based on their pitch:
@@ -157,66 +209,80 @@ Quantization helps you place markers precisely on musical beats:
 Lanes let you create complex arrangements with different instruments:
 
 1. **Select a Lane**
-   - Click on Lane 1, 2, 3, or 4 buttons
+   - Click on Lane 1, 2, 3, or 4 buttons in the right panel
    - Each lane has its own color and MIDI channel
 
 2. **Assign Markers to Lanes**
    - Select a lane before placing markers
-   - Existing markers can be moved between lanes
+   - New markers will be assigned to the currently selected lane
+   - Each lane can have independent quantization settings
 
-3. **Mute and Solo**
-   - Use M (mute) and S (solo) buttons to control playback
-   - Solo a lane to hear it alone
-   - Mute lanes to temporarily silence them
+3. **Lane Organization**
+   - Use different lanes for different instruments (drums, bass, melody, etc.)
+   - Each lane sends to a different MIDI channel
+   - Visual color coding helps organize complex arrangements
 
 ## Common First-Time Issues
 
 ### No Sound
-- **Check MIDI device selection**: Ensure correct output device is selected
+- **Check MIDI device selection**: Ensure correct output device is selected in the "MIDI Out:" dropdown
 - **Verify connections**: Make sure your synthesizer/DAW is receiving MIDI
 - **Test with simple software**: Try a basic software synth first
+- **macOS**: Ensure IAC Driver is enabled and Ableton track is armed
+
+### macOS-Specific Issues
+- **"App can't be opened"**: Go to System Preferences > Security & Privacy, click "Open Anyway"
+- **IAC Bus not visible**: Open Audio MIDI Setup, enable IAC Driver, restart both applications
+- **No sound in Ableton**: Check that the MIDI track is armed and has an instrument loaded
+- **Permission issues**: Grant audio/microphone permissions when prompted
 
 ### Timing Issues
 - **Enable quantization**: Use grid snap for precise timing
-- **Check BPM**: Ensure tempo matches your expectations
-- **Ableton sync**: If using Ableton Live, enable sync mode
+- **Check BPM**: Ensure tempo matches your expectations (try 120 BPM first)
+- **Ableton sync**: If using Ableton Live, enable sync mode for tempo matching
 
 ### Performance Issues
 - **Close other applications**: Free up system resources
 - **Adjust buffer settings**: In your audio interface control panel
 - **Update drivers**: Ensure MIDI and audio drivers are current
+- **macOS**: Close unnecessary background apps, check Activity Monitor for CPU usage
 
 ## Next Steps
 
 Once you're comfortable with the basics:
 
 1. **Explore Advanced Features**
-   - Multi-touch gestures for selecting multiple markers
-   - Pinch-to-zoom for detailed editing
-   - Drag markers off the disk to delete them
+   - **Multi-selection**: Hold Ctrl/Cmd and click to select multiple markers
+   - **Drag to remove**: Drag markers outside the disk edge to delete them
+   - **Velocity control**: Drag markers up/down to adjust volume
+   - **Lane switching**: Try different lanes for different instruments
 
-2. **Save Your Work**
-   - Use File > Save to preserve your patterns
-   - Projects are saved as JSON files
-   - Auto-save protects against crashes
+2. **Save and Organize Your Work**
+   - Use the **💾 Save** button to preserve your patterns as JSON files
+   - Use the **📁 Load** button to restore saved projects
+   - Use the **🗑️ Reset** button to clear all markers and start fresh
+   - Auto-save protects against crashes and unexpected shutdowns
 
-3. **Integrate with Your DAW**
-   - Set up Ableton Live sync for tempo matching
-   - Use virtual MIDI cables for other DAWs
-   - Record MIDI output into your sequencer
+3. **Advanced DAW Integration**
+   - **Ableton Live**: Follow the [setup guide](#macos--ableton-live-quick-setup) above
+   - **Other DAWs**: Use virtual MIDI cables (IAC on macOS, loopMIDI on Windows)
+   - **Recording**: Capture MIDI output in your DAW for further editing
+   - **Multiple tracks**: Use different lanes to control different instruments
 
-4. **Learn Advanced Techniques**
-   - Read the [Advanced Features Guide](advanced-features.md)
-   - Check out [MIDI Setup](midi-setup.md) for detailed configuration
-   - Browse [Troubleshooting](troubleshooting.md) for solutions to common issues
+4. **Creative Techniques**
+   - **Polyrhythms**: Use different quantization settings on different lanes
+   - **Velocity patterns**: Create dynamic patterns by varying marker heights
+   - **Tempo changes**: Experiment with different BPM settings for different feels
+   - **Live performance**: Use the interface for real-time pattern creation
 
 ## Getting Help
 
 If you run into issues:
 
 1. **Check the Documentation**
-   - Browse the complete [documentation](README.md)
-   - Look for your specific issue in [Troubleshooting](troubleshooting.md)
+   - Browse the complete [project README](../README.md) for detailed features and setup
+   - Review the [macOS + Ableton setup section](#macos--ableton-live-quick-setup) above
+   - Check the [Common Issues section](#common-first-time-issues) in this guide
 
 2. **Community Support**
    - Ask questions in [GitHub Discussions](https://github.com/user/circular-midi-generator/discussions)

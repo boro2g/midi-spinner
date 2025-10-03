@@ -13,7 +13,7 @@ A real-time MIDI generator with an innovative circular interface that reimagines
 - **Multi-Lane Support**: Up to 4 independent lanes with separate MIDI channels and settings
 - **Quantization Grid**: Snap markers to musical divisions (1/4, 1/8, 1/16, 1/32 notes) with visual grid overlay
 - **Tempo Synchronization**: Sync with Ableton Live or use manual BPM control (60-200 BPM)
-- **Mute/Solo Controls**: Dynamic lane control for live performance
+- **MIDI Device Management**: Automatic device detection with easy selection dropdown
 
 ### 🎨 Intuitive Interaction
 - **Drag & Drop**: Place markers by clicking, adjust velocity by dragging vertically
@@ -113,15 +113,33 @@ dotnet run --project src/CircularMidiGenerator
 
 ### MIDI Setup
 
-#### Connecting to DAWs
-1. **Ableton Live**: Enable sync for automatic tempo matching
-2. **Other DAWs**: Use virtual MIDI cables (loopMIDI on Windows, IAC on macOS)
-3. **Hardware Synths**: Connect via USB or MIDI interface
+#### macOS with Ableton Live Setup
+1. **Create Virtual MIDI Port**:
+   - Open **Audio MIDI Setup** (Applications > Utilities)
+   - Go to **Window > Show MIDI Studio**
+   - Double-click **IAC Driver** and check **"Device is online"**
+
+2. **Configure Ableton Live**:
+   - Open **Live > Preferences > Link/Tempo/MIDI**
+   - Find **"IAC Bus 1"** in MIDI Ports section
+   - Set **Track** and **Remote** to **"On"**
+   - Create a MIDI track and set input to **"IAC Bus 1"**
+   - Load an instrument and **arm the track**
+
+3. **Configure Circular MIDI Generator**:
+   - Select **"IAC Bus 1"** from the **MIDI Out** dropdown
+   - Click **🔄** to refresh if device not visible
+   - Place markers and press **Play** to test
+
+#### Other Platforms
+- **Windows**: Use loopMIDI or similar virtual MIDI cable
+- **Linux**: Use JACK or ALSA MIDI routing
+- **Hardware Synths**: Connect via USB or MIDI interface
 
 #### Troubleshooting MIDI
 - **No Sound**: Check MIDI device selection and connections
 - **High Latency**: Adjust audio buffer settings in your DAW
-- **Device Not Found**: Restart application or reconnect MIDI device
+- **Device Not Found**: Click refresh button or restart application
 
 ## Keyboard Shortcuts
 
@@ -132,9 +150,9 @@ dotnet run --project src/CircularMidiGenerator
 | Open Project | Ctrl+O | Cmd+O |
 | New Project | Ctrl+N | Cmd+N |
 | Select All Markers | Ctrl+A | Cmd+A |
-| Delete Selected | Delete | Delete |
-| Undo | Ctrl+Z | Cmd+Z |
-| Redo | Ctrl+Y | Cmd+Shift+Z |
+| Clear All Markers | Ctrl+Delete | Cmd+Delete |
+| Toggle Quantization | Ctrl+G | Cmd+G |
+| Refresh MIDI Devices | F5 | F5 |
 
 ## Technical Specifications
 
@@ -164,17 +182,21 @@ dotnet run --project src/CircularMidiGenerator
 circular-midi-generator/
 ├── src/
 │   ├── CircularMidiGenerator/          # Main Avalonia UI application
-│   │   ├── Controls/                   # Custom UI controls
+│   │   ├── Controls/                   # Custom UI controls (CircularCanvas, LanePanel)
 │   │   ├── ViewModels/                 # MVVM view models
-│   │   ├── Views/                      # XAML views
+│   │   ├── Views/                      # XAML views (MainWindow)
 │   │   ├── Services/                   # UI-specific services
-│   │   └── Converters/                 # Value converters
+│   │   ├── Converters/                 # Value converters
+│   │   └── Logging/                    # Application logging
 │   └── CircularMidiGenerator.Core/     # Core business logic
-│       ├── Models/                     # Domain models
-│       └── Services/                   # Core services
+│       ├── Models/                     # Domain models (Marker, Lane, etc.)
+│       └── Services/                   # Core services (MIDI, Timing, etc.)
 ├── docs/                               # Documentation
-├── scripts/                            # Build and deployment scripts
-└── .kiro/                             # Kiro configuration and specs
+│   ├── getting-started.md              # Quick start guide
+│   └── README.md                       # Documentation index
+└── .kiro/                             # Kiro IDE configuration and specs
+    ├── specs/                          # Feature specifications
+    └── steering/                       # Development guidelines
 ```
 
 ## Architecture

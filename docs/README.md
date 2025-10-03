@@ -4,13 +4,14 @@ Welcome to the comprehensive documentation for Circular MIDI Generator. This gui
 
 ## Table of Contents
 
-- [Getting Started](getting-started.md)
-- [User Interface Guide](user-interface.md)
-- [MIDI Configuration](midi-setup.md)
-- [Advanced Features](advanced-features.md)
-- [Troubleshooting](troubleshooting.md)
-- [API Reference](api/README.md)
-- [Developer Guide](development/README.md)
+- [Getting Started](getting-started.md) - Installation and first steps
+- [Main README](../README.md) - Complete project overview and features
+
+### Quick Links
+- [macOS + Ableton Live Setup](getting-started.md#macos--ableton-live-quick-setup)
+- [MIDI Device Configuration](getting-started.md#1-midi-setup)
+- [Creating Your First Pattern](getting-started.md#2-creating-your-first-pattern)
+- [Troubleshooting](getting-started.md#common-first-time-issues)
 
 ## Quick Navigation
 
@@ -25,9 +26,9 @@ Welcome to the comprehensive documentation for Circular MIDI Generator. This gui
 - [Performance Optimization](advanced-features.md#performance-tuning)
 
 ### For Developers
-- [Building from Source](development/building.md)
-- [Architecture Overview](development/architecture.md)
 - [Contributing Guidelines](../CONTRIBUTING.md)
+- [Project Structure](../README.md#project-structure)
+- [Architecture Overview](../README.md#architecture)
 
 ## Key Concepts
 
@@ -42,9 +43,9 @@ The heart of Circular MIDI Generator is its innovative circular interface. Unlik
 ### Lanes and Channels
 The application supports multiple lanes, each with:
 - Independent MIDI channel routing
-- Separate mute/solo controls
 - Individual quantization settings
 - Visual color coding for organization
+- Easy lane selection from the right panel
 
 ### Real-Time Performance
 Designed for live performance and studio work:
@@ -115,7 +116,7 @@ Circular MIDI Generator is released under the MIT License. See [LICENSE](../LICE
 - **SkiaSharp** - 2D graphics rendering
 
 ### Contributors
-Thanks to all the contributors who have helped make this project possible. See [CONTRIBUTORS.md](../CONTRIBUTORS.md) for the full list.
+Thanks to all the contributors who have helped make this project possible. See the [Contributing Guidelines](../CONTRIBUTING.md) for how to get involved.
 
 ---
 

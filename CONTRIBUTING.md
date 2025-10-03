@@ -15,7 +15,7 @@ Thank you for your interest in contributing to Circular MIDI Generator! This doc
 
 ## Code of Conduct
 
-This project adheres to a code of conduct that we expect all contributors to follow. Please read and follow our [Code of Conduct](CODE_OF_CONDUCT.md) to help us maintain a welcoming and inclusive community.
+This project adheres to a code of conduct that we expect all contributors to follow. Please be respectful and inclusive in all interactions to help us maintain a welcoming community.
 
 ## Getting Started
 
@@ -373,16 +373,16 @@ We use Semantic Versioning (SemVer):
 
 ### Maintainer Contact
 
-- **Project Lead**: @maintainer-username
-- **Core Team**: Listed in [MAINTAINERS.md](MAINTAINERS.md)
+- **Project Lead**: See GitHub repository maintainers
+- **Core Team**: Active contributors listed in GitHub insights
 
 ## Recognition
 
 Contributors are recognized in several ways:
 
-- **Contributors file**: Listed in [CONTRIBUTORS.md](CONTRIBUTORS.md)
+- **GitHub**: Contributor statistics, commit history, and badges
 - **Release notes**: Mentioned in release announcements
-- **GitHub**: Contributor statistics and badges
+- **Project README**: Acknowledgments section
 - **Special recognition**: Outstanding contributions highlighted
 
 ## License
