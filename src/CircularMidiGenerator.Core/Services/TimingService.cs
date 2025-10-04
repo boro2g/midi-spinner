@@ -250,9 +250,12 @@ public class TimingService : ITimingService, IDisposable
         
         foreach (var marker in _trackedMarkers)
         {
+            // Calculate where this marker appears relative to the stationary playhead at 12 o'clock
+            // As the disk rotates, markers move in the opposite direction relative to the playhead
+            var markerPositionRelativeToPlayhead = (marker.Angle - currentAngle + 360) % 360;
+            
             // Check if marker is within trigger threshold of 12 o'clock (0 degrees)
-            var markerAngle = marker.Angle;
-            var angleDifference = CalculateAngleDifference(currentAngle, markerAngle);
+            var angleDifference = CalculateAngleDifference(markerPositionRelativeToPlayhead, 0);
             
             if (angleDifference <= TRIGGER_THRESHOLD_DEGREES)
             {
@@ -267,7 +270,7 @@ public class TimingService : ITimingService, IDisposable
                 }
 
                 // Trigger the marker
-                TriggerMarker(marker, currentAngle);
+                TriggerMarker(marker, markerPositionRelativeToPlayhead);
                 _markerTriggerHistory[marker.Id] = now;
             }
         }
@@ -285,11 +288,11 @@ public class TimingService : ITimingService, IDisposable
         }
     }
 
-    private static double CalculateAngleDifference(double playheadAngle, double markerAngle)
+    private static double CalculateAngleDifference(double angle1, double angle2)
     {
-        // Calculate the shortest angular distance between playhead (at 0°) and marker
+        // Calculate the shortest angular distance between two angles
         // Account for circular nature (359° is close to 0°)
-        var difference = Math.Abs(markerAngle - 0); // Playhead is always at 0° (12 o'clock)
+        var difference = Math.Abs(angle1 - angle2);
         
         // Handle wrap-around case
         if (difference > 180)

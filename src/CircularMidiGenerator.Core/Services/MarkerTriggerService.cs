@@ -62,6 +62,13 @@ public class MarkerTriggerService : IMarkerTriggerService, IDisposable
             return;
         }
 
+        // Only process markers when timing service is playing
+        if (!_timingService.IsPlaying)
+        {
+            _logger.LogDebug("Skipping marker {MarkerId} trigger - timing service not playing", marker.Id);
+            return;
+        }
+
         var lane = _laneController.GetLane(marker.Lane);
         if (lane == null)
         {
@@ -135,9 +142,15 @@ public class MarkerTriggerService : IMarkerTriggerService, IDisposable
             // Track active note
             _activeNotes[channel].Add(midiNote);
             
-            // Schedule note off after a short duration (100ms for percussive sounds)
-            // In a real implementation, this might be configurable per lane or marker
-            var noteOffDelay = TimeSpan.FromMilliseconds(100);
+            // Calculate note duration based on marker's NoteLength and current BPM
+            // NoteLength is a fraction of a whole note (0.25 = quarter note, 0.125 = eighth note, etc.)
+            var currentBPM = _timingService.CurrentBPM;
+            var wholeNoteDurationMs = (60.0 / currentBPM) * 4 * 1000; // 4 beats per whole note
+            var noteOffDelayMs = wholeNoteDurationMs * marker.NoteLength;
+            var noteOffDelay = TimeSpan.FromMilliseconds(Math.Max(50, noteOffDelayMs)); // Minimum 50ms
+            
+            _logger.LogDebug("Triggering MIDI note {Note} on channel {Channel} with velocity {Velocity}, duration {Duration}ms", 
+                midiNote, channel, marker.Velocity, noteOffDelay.TotalMilliseconds);
             
             System.Threading.Tasks.Task.Delay(noteOffDelay).ContinueWith(_ =>
             {

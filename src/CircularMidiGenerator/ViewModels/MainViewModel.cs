@@ -1,9 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reactive;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading.Tasks;
 using ReactiveUI;
 using Microsoft.Extensions.Logging;
 using CircularMidiGenerator.Core.Models;
@@ -23,6 +25,7 @@ public class MainViewModel : ReactiveObject, IDisposable
     private readonly IQuantizationService? _quantizationService;
     private readonly IPersistenceService? _persistenceService;
     private readonly Services.IFileDialogService? _fileDialogService;
+    private readonly IMidiService? _midiService;
     private readonly CompositeDisposable _disposables = new();
     
     private double _bpm = 120.0;
@@ -42,7 +45,8 @@ public class MainViewModel : ReactiveObject, IDisposable
         ITimingService? timingService = null,
         IQuantizationService? quantizationService = null,
         IPersistenceService? persistenceService = null,
-        Services.IFileDialogService? fileDialogService = null)
+        Services.IFileDialogService? fileDialogService = null,
+        IMidiService? midiService = null)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _laneController = laneController ?? throw new ArgumentNullException(nameof(laneController));
@@ -51,6 +55,7 @@ public class MainViewModel : ReactiveObject, IDisposable
         _quantizationService = quantizationService;
         _persistenceService = persistenceService;
         _fileDialogService = fileDialogService;
+        _midiService = midiService;
         
         // Initialize default lanes
         _laneController.InitializeDefaultLanes();
@@ -86,6 +91,7 @@ public class MainViewModel : ReactiveObject, IDisposable
         if (_markerTriggerService != null)
         {
             _markerTriggerService.MarkerProcessed += OnMarkerProcessed;
+            _markerTriggerService.Initialize(); // Initialize the service to start listening for timing events
         }
         
         // Subscribe to timing service events if available
@@ -103,6 +109,9 @@ public class MainViewModel : ReactiveObject, IDisposable
         
         // Ensure UI reflects initial BPM value
         this.RaisePropertyChanged(nameof(BPM));
+        
+        // Auto-select IAC Driver if available
+        _ = Task.Run(AutoSelectMidiDevice);
         
         _logger.LogInformation("MainViewModel initialized with BPM: {BPM}", _bpm);
     }
@@ -926,6 +935,99 @@ public class MainViewModel : ReactiveObject, IDisposable
         
         // This event can be used for visual feedback when markers are triggered
         // The marker's IsActive property will already be set by the timing service
+    }
+
+    #endregion
+
+    #region MIDI Device Auto-Selection
+
+    /// <summary>
+    /// Automatically select the IAC Driver or first available MIDI device
+    /// </summary>
+    private async Task AutoSelectMidiDevice()
+    {
+        try
+        {
+            // Get available MIDI devices
+            var devices = await GetAvailableMidiDevices();
+            if (devices == null || !devices.Any())
+            {
+                _logger.LogWarning("No MIDI devices available for auto-selection");
+                StatusMessage = "No MIDI devices found";
+                return;
+            }
+
+            // Try to find IAC Driver first (preferred for Ableton Live)
+            var iacDevice = devices.FirstOrDefault(d => 
+                d.Name.Contains("IAC", StringComparison.OrdinalIgnoreCase) ||
+                d.Name.Contains("Bus", StringComparison.OrdinalIgnoreCase));
+
+            var selectedDevice = iacDevice ?? devices.First();
+
+            _logger.LogInformation("Auto-selecting MIDI device: {DeviceName}", selectedDevice.Name);
+            
+            // Set the device using the MIDI service
+            await SetMidiDevice(selectedDevice);
+            
+            SelectedMidiDevice = selectedDevice.Name;
+            IsMidiConnected = true;
+            StatusMessage = $"Connected to {selectedDevice.Name}";
+            
+            _logger.LogInformation("Successfully auto-selected MIDI device: {DeviceName}", selectedDevice.Name);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to auto-select MIDI device");
+            StatusMessage = "Failed to connect to MIDI device";
+        }
+    }
+
+    /// <summary>
+    /// Get available MIDI devices from the MIDI service
+    /// </summary>
+    private async Task<List<MidiDevice>?> GetAvailableMidiDevices()
+    {
+        try
+        {
+            if (_midiService == null)
+            {
+                _logger.LogWarning("MIDI service not available for device enumeration");
+                return null;
+            }
+
+            return await _midiService.GetAvailableDevicesAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get available MIDI devices");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Set the MIDI device using the MIDI service
+    /// </summary>
+    private async Task SetMidiDevice(MidiDevice device)
+    {
+        try
+        {
+            if (_midiService == null)
+            {
+                _logger.LogWarning("MIDI service not available for device selection");
+                return;
+            }
+            
+            _logger.LogInformation("Setting MIDI device: {DeviceName}", device.Name);
+            
+            await Task.Run(() => _midiService.SetOutputDevice(device));
+            
+            _logger.LogInformation("Successfully set MIDI device: {DeviceName}", device.Name);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to set MIDI device: {DeviceName}", device.Name);
+            throw;
+        }
     }
 
     #endregion
